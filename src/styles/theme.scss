@@ -1,0 +1,41 @@
+// ============================================
+// 主题配色变量（水路运输货主查询小程序）
+// ============================================
+
+// 品牌主题色：深海蓝，象征海洋与信任
+$color-primary: #0077C8;
+$color-primary-light: #3DA5F5;
+$color-primary-dark: #005A9E;
+
+// 功能色
+$color-success: #00B42A;
+$color-warning: #FF7D00;
+$color-error: #F53F3F;
+$color-info: #0077C8;
+
+// 业务状态色
+$color-status-transit: #0077C8;
+$color-status-completed: #00B42A;
+$color-status-exception: #F53F3F;
+$color-status-pending: #86909C;
+
+// 背景色
+$color-bg-page: #F0F7FF;
+$color-bg-card: #ffffff;
+$color-bg-hover: #F2F3F5;
+$color-bg-tag: rgba(0, 119, 200, 0.08);
+
+// 文本色
+$color-text-primary: #1D2129;
+$color-text-secondary: #4E5969;
+$color-text-tertiary: #86909C;
+$color-text-disabled: #C9CDD4;
+$color-text-white: #ffffff;
+
+// 边框色
+$color-border: #E5E6EB;
+$color-divider: #F2F3F5;
+
+// 渐变色
+$gradient-primary: linear-gradient(135deg, #0077C8 0%, #3DA5F5 100%);
+$gradient-page: linear-gradient(180deg, #E6F2FF 0%, #F0F7FF 100%);
