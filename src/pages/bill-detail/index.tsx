@@ -14,7 +14,8 @@ const BillDetailPage: React.FC = () => {
     getExpensesByWaybillNo,
     getWaybillByNo,
     updateBillFile,
-    updateExpensePayment
+    updateExpensePayment,
+    refreshBillSummaries
   } = useAppStore();
 
   const [bill, setBill] = useState<BillSummary | null>(null);
@@ -31,17 +32,14 @@ const BillDetailPage: React.FC = () => {
       return;
     }
 
-    let billData = getBillSummaryByWaybillNo(waybillNo);
-    if (!billData) {
-      billData = generateBillSummary(waybillNo);
-    }
+    let billData = generateBillSummary(waybillNo, true);
     if (billData) {
       setBill(billData);
     }
 
     const expenseData = getExpensesByWaybillNo(waybillNo);
     setExpenses(expenseData);
-  }, [waybillNo, getBillSummaryByWaybillNo, generateBillSummary, getExpensesByWaybillNo]);
+  }, [waybillNo, generateBillSummary, getExpensesByWaybillNo]);
 
   useDidShow(() => {
     loadData();
@@ -153,8 +151,11 @@ ${bill.paymentRecords.length === 0 ? '暂无付款记录' : bill.paymentRecords.
               }
             }
 
+            refreshBillSummaries();
             Taro.showToast({ title: '支付成功', icon: 'success' });
-            loadData();
+            setTimeout(() => {
+              loadData();
+            }, 100);
           } catch (error) {
             console.error('[BillDetail] Payment failed:', error);
             Taro.showToast({ title: '支付失败，请重试', icon: 'none' });

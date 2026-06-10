@@ -33,7 +33,10 @@ export const mockExpenses: ExpenseInfo[] = [
       { id: 'i4', name: '滞箱费', amount: 800.00, type: 'detention', remark: '超期2天' }
     ],
     createTime: '2024-06-08 08:30',
-    dueDate: '2024-06-18 23:59'
+    dueDate: '2024-06-18 23:59',
+    paidTime: '2024-06-09 10:30',
+    paymentMethod: '微信支付',
+    paymentVoucher: 'https://picsum.photos/id/225/400/400'
   },
   {
     id: 'e3',

@@ -10,7 +10,7 @@ import { expenseTypeMap } from '@/data/expense';
 import type { ExpenseInfo } from '@/types';
 
 const ExpensePage: React.FC = () => {
-  const { expenses, waybills, updateExpensePayment, getExpensesByWaybillNo, getBillSummaries, generateBillSummary } = useAppStore();
+  const { expenses, waybills, updateExpensePayment, getExpensesByWaybillNo, getBillSummaries, generateBillSummary, refreshBillSummaries } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'all' | 'unpaid' | 'paid'>('all');
   const [searchWaybillNo, setSearchWaybillNo] = useState('');
@@ -295,6 +295,7 @@ ${expense.dueDate && expense.status !== 'paid' ? `
   };
 
   const handleViewBillCenter = () => {
+    refreshBillSummaries();
     const bills = getBillSummaries();
     if (bills.length === 0) {
       Taro.showToast({
@@ -311,7 +312,7 @@ ${expense.dueDate && expense.status !== 'paid' ? `
           url: `/pages/bill-detail/index?waybillNo=${bill.waybillNo}`
         });
       }
-    });
+      });
   };
 
   const handleViewBillDetail = (waybillNo: string) => {

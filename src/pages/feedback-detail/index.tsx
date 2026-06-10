@@ -211,7 +211,7 @@ const FeedbackDetailPage: React.FC = () => {
           <Text className={styles.supplementTitle}>请补充材料</Text>
           <View className={styles.uploadSection}>
             <PhotoUpload
-              value={supplementPhotos}
+              photos={supplementPhotos}
               onChange={setSupplementPhotos}
               maxCount={9}
             />

@@ -62,8 +62,9 @@ interface AppState {
   getUnreadNotificationCount: () => number;
   getBillSummaries: (filters?: { waybillNo?: string; status?: string }) => BillSummary[];
   getBillSummaryByWaybillNo: (waybillNo: string) => BillSummary | undefined;
-  generateBillSummary: (waybillNo: string) => BillSummary | null;
+  generateBillSummary: (waybillNo: string, forceUpdate?: boolean) => BillSummary | null;
   updateBillFile: (billId: string, fileUrl: string) => void;
+  refreshBillSummaries: () => void;
   resetAll: () => void;
 }
 
@@ -350,7 +351,18 @@ export const useAppStore = create<AppState>()(
           data = data.filter(n => n.shipName === filters.shipName);
         }
         if (filters?.route) {
-          data = data.filter(n => n.route === filters.route);
+          const routeFilter = filters.route;
+          data = data.filter(n => {
+            if (n.route === routeFilter) return true;
+            const [filterStart, filterEnd] = routeFilter.split('-').map(s => s.trim());
+            const [noteStart, noteEnd] = n.route.split('-').map(s => s.trim());
+            return (
+              (filterStart && noteStart && noteStart.startsWith(filterStart)) ||
+              (filterEnd && noteEnd && noteEnd.startsWith(filterEnd)) ||
+              (filterStart && noteStart && noteStart.includes(filterStart)) ||
+              (filterEnd && noteEnd && noteEnd.includes(filterEnd))
+            );
+          });
         }
         if (filters?.type) {
           data = data.filter(n => n.type === filters.type);
@@ -391,10 +403,8 @@ export const useAppStore = create<AppState>()(
         return get().billSummaries.find(b => b.waybillNo === waybillNo);
       },
 
-      generateBillSummary: (waybillNo) => {
+      generateBillSummary: (waybillNo, forceUpdate = false) => {
         const existing = get().billSummaries.find(b => b.waybillNo === waybillNo);
-        if (existing) return existing;
-
         const waybill = get().getWaybillByNo(waybillNo);
         if (!waybill) return null;
 
@@ -406,7 +416,6 @@ export const useAppStore = create<AppState>()(
         const totalAmount = expenses.reduce((sum, e) => sum + e.totalAmount, 0);
         const paidAmount = expenses.reduce((sum, e) => sum + e.paidAmount, 0);
         const unpaidAmount = expenses.reduce((sum, e) => sum + e.unpaidAmount, 0);
-        const hasUnpaid = expenses.some(e => e.status === 'unpaid' || e.status === 'partial');
         const allPaid = expenses.every(e => e.status === 'paid');
 
         let status: 'paid' | 'partial' | 'unpaid';
@@ -425,6 +434,29 @@ export const useAppStore = create<AppState>()(
         const earliestDueDate = expenses.reduce((earliest, e) =>
           new Date(e.dueDate) < new Date(earliest) ? e.dueDate : earliest
         , expenses[0].dueDate);
+
+        if (existing && !forceUpdate) {
+          return existing;
+        }
+
+        if (existing && forceUpdate) {
+          const updatedBill: BillSummary = {
+            ...existing,
+            totalAmount,
+            paidAmount,
+            unpaidAmount,
+            status,
+            statusText,
+            dueDate: earliestDueDate,
+            paymentRecords: payments
+          };
+          set(state => ({
+            billSummaries: state.billSummaries.map(b =>
+              b.id === existing.id ? updatedBill : b
+            )
+          }));
+          return updatedBill;
+        }
 
         const bill: BillSummary = {
           id: `b_${Date.now()}`,
@@ -449,6 +481,14 @@ export const useAppStore = create<AppState>()(
         }));
 
         return bill;
+      },
+
+      refreshBillSummaries: () => {
+        const { expenses } = get();
+        const waybillNos = [...new Set(expenses.map(e => e.waybillNo))];
+        waybillNos.forEach(waybillNo => {
+          get().generateBillSummary(waybillNo, true);
+        });
       },
 
       updateBillFile: (billId, fileUrl) => {
