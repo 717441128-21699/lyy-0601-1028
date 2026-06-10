@@ -15,8 +15,11 @@ const SubscriptionPage: React.FC = () => {
   const {
     subscriptions,
     toggleSubscription,
-    getSubscribedSubscriptions
+    getSubscribedSubscriptions,
+    getUnreadNotificationCount
   } = useAppStore();
+
+  const unreadCount = getUnreadNotificationCount();
 
   const [activeTab, setActiveTab] = useState<'all' | 'subscribed'>('all');
   const [selectedRoute, setSelectedRoute] = useState('');
@@ -125,11 +128,27 @@ const SubscriptionPage: React.FC = () => {
     }, 300);
   };
 
+  const handleViewNotifications = () => {
+    Taro.navigateTo({
+      url: '/pages/notification/index'
+    });
+  };
+
   return (
     <ScrollView className={styles.page} scrollY>
       <View className={styles.header}>
-        <Text className={styles.pageTitle}>船期订阅</Text>
-        <Text className={styles.pageSubtitle}>订阅航线，实时获取船期动态</Text>
+        <View className={styles.headerRow}>
+          <View>
+            <Text className={styles.pageTitle}>船期订阅</Text>
+            <Text className={styles.pageSubtitle}>订阅航线，实时获取船期动态</Text>
+          </View>
+          <View className={styles.notificationBtn} onClick={handleViewNotifications}>
+            <Text className={styles.notificationIcon}>🔔</Text>
+            {unreadCount > 0 && (
+              <Text className={styles.notificationBadge}>{unreadCount}</Text>
+            )}
+          </View>
+        </View>
       </View>
 
       <View className={styles.tabs}>

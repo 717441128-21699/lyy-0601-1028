@@ -1,0 +1,300 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 200rpx;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: 32rpx;
+  color: #fff;
+}
+
+.typeBadge {
+  display: inline-block;
+  padding: 8rpx 24rpx;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-md;
+  font-size: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.waybillNo {
+  font-size: 36rpx;
+  font-weight: $font-weight-semibold;
+  margin-bottom: 8rpx;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.statusBadge {
+  padding: 6rpx 20rpx;
+  border-radius: $radius-md;
+  font-size: 24rpx;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.createTime {
+  font-size: 24rpx;
+  opacity: 0.8;
+}
+
+.section {
+  background-color: $color-bg-card;
+  margin: 24rpx 32rpx;
+  padding: 32rpx;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+.sectionTitle {
+  font-size: 30rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background-color: $color-primary;
+}
+
+.description {
+  font-size: 28rpx;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  margin-bottom: 24rpx;
+}
+
+.photoGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.photoItem {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: $radius-md;
+  overflow: hidden;
+}
+
+.photoItem Image {
+  width: 100%;
+  height: 100%;
+  border-radius: $radius-md;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 40rpx;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 11rpx;
+  top: 8rpx;
+  bottom: 8rpx;
+  width: 2rpx;
+  background-color: $color-border;
+}
+
+.timelineItem {
+  position: relative;
+  padding-bottom: 32rpx;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.timelineDot {
+  position: absolute;
+  left: -40rpx;
+  top: 8rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background-color: $color-primary;
+  border: 4rpx solid #fff;
+  box-shadow: 0 0 0 2rpx $color-primary;
+
+  &.submit {
+    background-color: $color-primary;
+    box-shadow: 0 0 0 2rpx $color-primary;
+  }
+
+  &.process {
+    background-color: $color-warning;
+    box-shadow: 0 0 0 2rpx $color-warning;
+  }
+
+  &.request_more {
+    background-color: $color-error;
+    box-shadow: 0 0 0 2rpx $color-error;
+  }
+
+  &.reply {
+    background-color: $color-info;
+    box-shadow: 0 0 0 2rpx $color-info;
+  }
+
+  &.resolve {
+    background-color: $color-success;
+    box-shadow: 0 0 0 2rpx $color-success;
+  }
+}
+
+.timelineHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.timelineAction {
+  font-size: 28rpx;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+}
+
+.timelineOperator {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+  background-color: $color-bg-hover;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-sm;
+}
+
+.timelineTime {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+  margin-bottom: 12rpx;
+}
+
+.timelineContent {
+  font-size: 26rpx;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+}
+
+.timelinePhotos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.timelinePhoto {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: $radius-sm;
+}
+
+.replySection {
+  background-color: $color-bg-tag;
+  border-left: 6rpx solid $color-primary;
+  padding: 24rpx;
+  border-radius: $radius-md;
+}
+
+.replyTitle {
+  font-size: 26rpx;
+  font-weight: $font-weight-medium;
+  color: $color-primary;
+  margin-bottom: 8rpx;
+}
+
+.replyTime {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  margin-bottom: 12rpx;
+}
+
+.replyContent {
+  font-size: 26rpx;
+  color: $color-text-secondary;
+  line-height: 1.6;
+}
+
+.supplementForm {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $color-bg-card;
+  padding: 24rpx 32rpx;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.08);
+  border-top-left-radius: $radius-lg;
+  border-top-right-radius: $radius-lg;
+}
+
+.supplementTitle {
+  font-size: 28rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-error;
+  margin-bottom: 16rpx;
+}
+
+.supplementInput {
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  padding: 24rpx;
+  font-size: 28rpx;
+  color: $color-text-primary;
+  margin-bottom: 16rpx;
+  min-height: 160rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.supplementActions {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.submitBtn {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: $font-weight-medium;
+  border-radius: $radius-button;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+
+  &.disabled {
+    background-color: $color-text-disabled;
+    color: $color-text-tertiary;
+  }
+}
+
+.uploadSection {
+  margin-bottom: 16rpx;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 100rpx 0;
+  color: $color-text-tertiary;
+  font-size: 28rpx;
+}

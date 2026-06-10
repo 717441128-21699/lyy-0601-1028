@@ -9,6 +9,50 @@
   margin-bottom: $spacing-lg;
 }
 
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.notificationBtn {
+  position: relative;
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-bg-card;
+  border-radius: $radius-round;
+  box-shadow: $shadow-card;
+
+  &:active {
+    opacity: 0.8;
+    transform: scale(0.95);
+  }
+}
+
+.notificationIcon {
+  font-size: 40rpx;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  min-width: 36rpx;
+  height: 36rpx;
+  padding: 0 8rpx;
+  background-color: $color-error;
+  color: #ffffff;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  border-radius: $radius-round;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .pageTitle {
   font-size: $font-size-xxl;
   font-weight: $font-weight-bold;

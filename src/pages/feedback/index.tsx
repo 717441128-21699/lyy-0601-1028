@@ -142,6 +142,22 @@ const FeedbackPage: React.FC = () => {
     }, 300);
   };
 
+  const handleViewFeedbackDetail = (feedbackId: string) => {
+    Taro.navigateTo({
+      url: `/pages/feedback-detail/index?id=${feedbackId}`
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    const colorMap: Record<string, string> = {
+      pending: '#FF7D00',
+      processing: '#0077C8',
+      need_more: '#F53F3F',
+      resolved: '#00B42A'
+    };
+    return colorMap[status] || '#86909C';
+  };
+
   return (
     <ScrollView className={styles.page} scrollY>
       <View className={styles.header}>
@@ -244,7 +260,11 @@ const FeedbackPage: React.FC = () => {
           {sortedFeedbacks.length > 0 ? (
             <View className={styles.historyList}>
               {sortedFeedbacks.map(feedback => (
-                <View key={feedback.id} className={styles.historyCard}>
+                <View
+                  key={feedback.id}
+                  className={styles.historyCard}
+                  onClick={() => handleViewFeedbackDetail(feedback.id)}
+                >
                   <View className={styles.historyHeader}>
                     <View>
                       <Text className={styles.historyType}>
@@ -252,12 +272,23 @@ const FeedbackPage: React.FC = () => {
                       </Text>
                       <Text
                         className={styles.historyWaybill}
-                        onClick={() => handleViewWaybill(feedback.waybillNo)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewWaybill(feedback.waybillNo);
+                        }}
                       >
                         运单号: {feedback.waybillNo} →
                       </Text>
                     </View>
-                    <StatusBadge status={feedback.status} text={feedback.statusText} />
+                    <View
+                      className={styles.statusBadgeCustom}
+                      style={{
+                        backgroundColor: `${getStatusColor(feedback.status)}15`,
+                        color: getStatusColor(feedback.status)
+                      }}
+                    >
+                      {feedback.statusText}
+                    </View>
                   </View>
 
                   <Text className={styles.historyDesc}>{feedback.description}</Text>
@@ -268,7 +299,10 @@ const FeedbackPage: React.FC = () => {
                         <View
                           key={index}
                           className={styles.historyPhoto}
-                          onClick={() => handleViewPhoto(photo, feedback.photos)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewPhoto(photo, feedback.photos);
+                          }}
                         >
                           <Image
                             className={styles.historyPhotoImg}
@@ -280,9 +314,24 @@ const FeedbackPage: React.FC = () => {
                     </View>
                   )}
 
+                  {feedback.history && feedback.history.length > 1 && (
+                    <View className={styles.flowPreview}>
+                      <Text className={styles.flowPreviewText}>
+                        处理进度: {feedback.history.map((h, idx) => (
+                          <Text key={idx}>
+                            {idx > 0 && ' → '}
+                            <Text style={{ color: getStatusColor(feedback.status) }}>
+                              {h.actionText}
+                            </Text>
+                          </Text>
+                        ))}
+                      </Text>
+                    </View>
+                  )}
+
                   {feedback.reply && (
                     <View className={styles.replySection}>
-                      <Text className={styles.replyLabel}>📋 官方回复</Text>
+                      <Text className={styles.replyLabel}>📋 最新回复</Text>
                       <Text className={styles.replyContent}>{feedback.reply}</Text>
                       {feedback.replyTime && (
                         <Text className={styles.replyTime}>{feedback.replyTime}</Text>
@@ -292,6 +341,7 @@ const FeedbackPage: React.FC = () => {
 
                   <View className={styles.historyFooter}>
                     <Text className={styles.historyTime}>{feedback.createTime}</Text>
+                    <Text className={styles.viewDetailText}>查看详情 →</Text>
                   </View>
                 </View>
               ))}

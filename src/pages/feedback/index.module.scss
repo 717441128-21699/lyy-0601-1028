@@ -211,6 +211,20 @@
   border-radius: $radius-lg;
   padding: $spacing-lg;
   box-shadow: $shadow-card;
+  transition: all $transition-base;
+
+  &:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+}
+
+.statusBadgeCustom {
+  padding: 8rpx 16rpx;
+  border-radius: $radius-round;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  white-space: nowrap;
 }
 
 .historyHeader {
@@ -297,6 +311,25 @@
   color: $color-text-tertiary;
   margin-top: $spacing-xs;
   text-align: right;
+}
+
+.flowPreview {
+  background-color: $color-bg-tag;
+  border-radius: $radius-sm;
+  padding: $spacing-sm $spacing-md;
+  margin-top: $spacing-md;
+}
+
+.flowPreviewText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+}
+
+.viewDetailText {
+  font-size: $font-size-sm;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
 }
 
 .emptyWrapper {

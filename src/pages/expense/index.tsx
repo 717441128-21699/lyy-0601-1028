@@ -10,7 +10,7 @@ import { expenseTypeMap } from '@/data/expense';
 import type { ExpenseInfo } from '@/types';
 
 const ExpensePage: React.FC = () => {
-  const { expenses, waybills, updateExpensePayment, getExpensesByWaybillNo } = useAppStore();
+  const { expenses, waybills, updateExpensePayment, getExpensesByWaybillNo, getBillSummaries, generateBillSummary } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'all' | 'unpaid' | 'paid'>('all');
   const [searchWaybillNo, setSearchWaybillNo] = useState('');
@@ -125,7 +125,7 @@ const ExpensePage: React.FC = () => {
     });
   };
 
-  const handleViewVoucher = (expense: ExpenseInfo) => {
+  const handleViewVoucher = async (expense: ExpenseInfo) => {
     if (!expense.paymentVoucher) {
       Taro.showToast({
         title: '暂无付款凭证',
@@ -133,23 +133,129 @@ const ExpensePage: React.FC = () => {
       });
       return;
     }
-    Taro.previewImage({
-      urls: [expense.paymentVoucher],
-      current: expense.paymentVoucher
-    });
+
+    try {
+      if (expense.paymentVoucher.startsWith('http')) {
+        Taro.previewImage({
+          urls: [expense.paymentVoucher],
+          current: expense.paymentVoucher
+        });
+      } else {
+        const savedPath = await Taro.saveFile({ tempFilePath: expense.paymentVoucher });
+        Taro.openDocument({
+          filePath: savedPath.savedFilePath,
+          showMenu: true,
+          success: () => {
+            Taro.showToast({ title: '凭证已打开', icon: 'success' });
+          },
+          fail: () => {
+            Taro.previewImage({
+              urls: [expense.paymentVoucher],
+              current: expense.paymentVoucher
+            });
+          }
+        });
+      }
+    } catch {
+      Taro.previewImage({
+        urls: [expense.paymentVoucher],
+        current: expense.paymentVoucher
+      });
+    }
   };
 
-  const handleDownloadBill = (expense: ExpenseInfo) => {
+  const handleDownloadBill = async (expense: ExpenseInfo) => {
     Taro.showLoading({ title: '正在生成账单...' });
-    setTimeout(() => {
+
+    try {
+      const billContent = `
+=========================================
+          集装箱运输费用账单
+=========================================
+
+【账单基本信息】
+账单编号: ${expense.id}
+运单号: ${expense.waybillNo}
+账单日期: ${expense.createTime}
+支付状态: ${expense.statusText}
+
+【费用明细】
+${expense.items.map((item, idx) => `
+${idx + 1}. ${getTypeLabel(item.type)} - ${item.name}
+   金额: ¥${item.amount.toFixed(2)}
+   ${item.remark ? `备注: ${item.remark}` : ''}
+`).join('')}
+
+【费用汇总】
+账单总金额: ¥${expense.totalAmount.toFixed(2)}
+已支付金额: ¥${expense.paidAmount.toFixed(2)}
+待支付金额: ¥${expense.unpaidAmount.toFixed(2)}
+
+${expense.paidTime ? `【支付信息】
+支付时间: ${expense.paidTime}
+支付方式: ${expense.paymentMethod || '微信支付'}
+` : ''}
+${expense.dueDate && expense.status !== 'paid' ? `
+【重要提醒】
+请在 ${expense.dueDate} 前完成支付，避免产生滞期费用。
+` : ''}
+=========================================
+                 感谢您的使用
+=========================================
+      `;
+
+      const fs = Taro.getFileSystemManager();
+      const filePath = `${Taro.env.USER_DATA_PATH}/bill_${expense.waybillNo}_${Date.now()}.txt`;
+      fs.writeFileSync(filePath, billContent, 'utf8');
+
+      try {
+        const savedFile = await Taro.saveFile({ tempFilePath: filePath });
+        Taro.hideLoading();
+
+        Taro.showModal({
+          title: '账单生成成功',
+          content: `账单已保存到本地，是否立即查看？\n文件路径: ${savedFile.savedFilePath}`,
+          confirmText: '立即查看',
+          cancelText: '稍后查看',
+          success: (res) => {
+            if (res.confirm) {
+              Taro.openDocument({
+                filePath: savedFile.savedFilePath,
+                showMenu: true,
+                fail: () => {
+                  Taro.showToast({
+                    title: '已保存，可在文件管理器中查看',
+                    icon: 'none',
+                    duration: 2000
+                  });
+                }
+              });
+            } else {
+              Taro.showToast({
+                title: '账单已保存',
+                icon: 'success'
+              });
+            }
+          }
+        });
+
+        generateBillSummary(expense.waybillNo);
+      } catch {
+        fs.unlinkSync(filePath);
+        Taro.hideLoading();
+        Taro.showToast({
+          title: '保存失败，请重试',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
       Taro.hideLoading();
-      Taro.showModal({
-        title: '账单明细',
-        content: `运单号：${expense.waybillNo}\n账单金额：¥${expense.totalAmount.toFixed(2)}\n已支付：¥${expense.paidAmount.toFixed(2)}\n待支付：¥${expense.unpaidAmount.toFixed(2)}\n\n账单明细已生成，可在"我的账单"中查看历史记录。`,
-        showCancel: false,
-        confirmText: '知道了'
+      console.error('Generate bill failed:', error);
+      Taro.showToast({
+        title: '生成账单失败',
+        icon: 'none'
       });
-    }, 1000);
+    }
   };
 
   const handleDownloadInvoice = (expense: ExpenseInfo) => {
@@ -188,11 +294,48 @@ const ExpensePage: React.FC = () => {
     return `¥${amount.toFixed(2)}`;
   };
 
+  const handleViewBillCenter = () => {
+    const bills = getBillSummaries();
+    if (bills.length === 0) {
+      Taro.showToast({
+        title: '暂无对账单',
+        icon: 'none'
+      });
+      return;
+    }
+    Taro.showActionSheet({
+      itemList: bills.map(b => `运单${b.waybillNo} - ${b.statusText}`),
+      success: (res) => {
+        const bill = bills[res.tapIndex];
+        Taro.navigateTo({
+          url: `/pages/bill-detail/index?waybillNo=${bill.waybillNo}`
+        });
+      }
+    });
+  };
+
+  const handleViewBillDetail = (waybillNo: string) => {
+    const bill = generateBillSummary(waybillNo);
+    if (bill) {
+      Taro.navigateTo({
+        url: `/pages/bill-detail/index?waybillNo=${waybillNo}`
+      });
+    }
+  };
+
   return (
     <ScrollView className={styles.page} scrollY>
       <View className={styles.header}>
-        <Text className={styles.pageTitle}>费用明细</Text>
-        <Text className={styles.pageSubtitle}>查看和管理您的费用账单</Text>
+        <View className={styles.headerRow}>
+          <View>
+            <Text className={styles.pageTitle}>费用明细</Text>
+            <Text className={styles.pageSubtitle}>查看和管理您的费用账单</Text>
+          </View>
+          <View className={styles.billCenterBtn} onClick={handleViewBillCenter}>
+            <Text className={styles.billCenterIcon}>📊</Text>
+            <Text className={styles.billCenterText}>对账单</Text>
+          </View>
+        </View>
       </View>
 
       <View className={styles.summaryCard}>
@@ -368,6 +511,12 @@ const ExpensePage: React.FC = () => {
                   </Text>
                 </View>
                 <View className={styles.actionGroup}>
+                  <Button
+                    className={classNames(styles.actionBtn, styles.secondary)}
+                    onClick={() => handleViewBillDetail(expense.waybillNo)}
+                  >
+                    对账
+                  </Button>
                   <Button
                     className={classNames(styles.actionBtn, styles.secondary)}
                     onClick={() => handleDownloadBill(expense)}

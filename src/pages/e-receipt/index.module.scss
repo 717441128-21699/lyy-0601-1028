@@ -243,6 +243,41 @@
   color: $color-text-tertiary;
 }
 
+.fileInfo {
+  display: flex;
+  align-items: center;
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-lg;
+  margin-bottom: $spacing-lg;
+  box-shadow: $shadow-card;
+  border-left: 6rpx solid $color-success;
+}
+
+.fileInfoIcon {
+  font-size: 48rpx;
+  margin-right: $spacing-md;
+}
+
+.fileInfoContent {
+  flex: 1;
+  overflow: hidden;
+}
+
+.fileInfoTitle {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
+  margin-bottom: $spacing-xs;
+}
+
+.fileInfoPath {
+  font-size: $font-size-xs;
+  color: $color-text-tertiary;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
 .actionButtons {
   display: flex;
   gap: $spacing-md;

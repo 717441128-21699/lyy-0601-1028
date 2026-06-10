@@ -1,0 +1,376 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+  padding-bottom: 200rpx;
+}
+
+.header {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  padding: 48rpx 32rpx;
+  color: #fff;
+}
+
+.billNo {
+  font-size: 28rpx;
+  opacity: 0.8;
+  margin-bottom: 12rpx;
+}
+
+.waybillNo {
+  font-size: 40rpx;
+  font-weight: $font-weight-bold;
+  margin-bottom: 24rpx;
+}
+
+.shipInfo {
+  display: flex;
+  gap: 24rpx;
+  margin-bottom: 32rpx;
+  font-size: 26rpx;
+  opacity: 0.9;
+}
+
+.amountSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.amountItem {
+  text-align: left;
+}
+
+.amountLabel {
+  font-size: 24rpx;
+  opacity: 0.8;
+  margin-bottom: 8rpx;
+}
+
+.amountValue {
+  font-size: 36rpx;
+  font-weight: $font-weight-bold;
+}
+
+.amountValue.paid {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: line-through;
+}
+
+.amountValue.unpaid {
+  color: #FFD700;
+}
+
+.statusBadge {
+  padding: 8rpx 24rpx;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-md;
+  font-size: 24rpx;
+  align-self: center;
+}
+
+.section {
+  background-color: $color-bg-card;
+  margin: 24rpx 32rpx;
+  padding: 32rpx;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.sectionTitle {
+  font-size: 30rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background-color: $color-primary;
+}
+
+.expandBtn {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}
+
+.expenseList {
+  border-top: 1rpx solid $color-divider;
+  padding-top: 16rpx;
+}
+
+.expenseItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.expenseName {
+  font-size: 28rpx;
+  color: $color-text-secondary;
+}
+
+.expenseAmount {
+  font-size: 28rpx;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.expenseRemark {
+  font-size: 22rpx;
+  color: $color-text-tertiary;
+  margin-top: 4rpx;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24rpx;
+  margin-top: 8rpx;
+  border-top: 2rpx solid $color-border;
+}
+
+.totalLabel {
+  font-size: 30rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.totalAmount {
+  font-size: 36rpx;
+  font-weight: $font-weight-bold;
+  color: $color-primary;
+}
+
+.paymentTimeline {
+  position: relative;
+  padding-left: 40rpx;
+}
+
+.paymentTimeline::before {
+  content: '';
+  position: absolute;
+  left: 11rpx;
+  top: 8rpx;
+  bottom: 8rpx;
+  width: 2rpx;
+  background-color: $color-border;
+}
+
+.paymentItem {
+  position: relative;
+  padding-bottom: 32rpx;
+
+  &:last-child {
+    padding-bottom: 0;
+  }
+}
+
+.paymentDot {
+  position: absolute;
+  left: -40rpx;
+  top: 8rpx;
+  width: 24rpx;
+  height: 24rpx;
+  border-radius: 50%;
+  background-color: $color-success;
+  border: 4rpx solid #fff;
+  box-shadow: 0 0 0 2rpx $color-success;
+}
+
+.paymentHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.paymentAmount {
+  font-size: 28rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-success;
+}
+
+.paymentMethod {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+  background-color: $color-bg-hover;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-sm;
+}
+
+.paymentTime {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+  margin-bottom: 12rpx;
+}
+
+.paymentVoucher {
+  margin-top: 12rpx;
+}
+
+.voucherTitle {
+  font-size: 24rpx;
+  color: $color-text-secondary;
+  margin-bottom: 8rpx;
+}
+
+.voucherImage {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: $radius-md;
+}
+
+.noPayment {
+  text-align: center;
+  padding: 40rpx 0;
+  color: $color-text-tertiary;
+  font-size: 26rpx;
+}
+
+.voucherSection {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.voucherItem {
+  position: relative;
+}
+
+.voucherImg {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: $radius-md;
+}
+
+.voucherLabel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 20rpx;
+  text-align: center;
+  padding: 8rpx 0;
+  border-bottom-left-radius: $radius-md;
+  border-bottom-right-radius: $radius-md;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.infoLabel {
+  font-size: 26rpx;
+  color: $color-text-tertiary;
+}
+
+.infoValue {
+  font-size: 26rpx;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $color-bg-card;
+  padding: 24rpx 32rpx;
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.08);
+  display: flex;
+  gap: 24rpx;
+}
+
+.btn {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  border-radius: $radius-button;
+  font-size: 30rpx;
+  font-weight: $font-weight-medium;
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
+
+.btnSecondary {
+  background-color: $color-bg-page;
+  color: $color-primary;
+  border: 2rpx solid $color-primary;
+}
+
+.btnPrimary {
+  background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+  color: #fff;
+}
+
+.btnDisabled {
+  background-color: $color-text-disabled;
+  color: $color-text-tertiary;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 100rpx 0;
+  color: $color-text-tertiary;
+  font-size: 28rpx;
+}
+
+.billInfo {
+  background-color: $color-bg-tag;
+  border-radius: $radius-md;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.billInfoRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.billInfoLabel {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}
+
+.billInfoValue {
+  font-size: 24rpx;
+  color: $color-text-primary;
+}

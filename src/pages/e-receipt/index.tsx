@@ -7,10 +7,11 @@ import type { WaybillInfo, EReceipt } from '@/types';
 
 const EReceiptPage: React.FC = () => {
   const router = useRouter();
-  const { generateEReceipt, getEReceiptByWaybillNo, getWaybillByNo } = useAppStore();
+  const { generateEReceipt, getEReceiptByWaybillNo, getWaybillByNo, updateEReceiptFile } = useAppStore();
 
   const [receipt, setReceipt] = useState<EReceipt | null>(null);
   const [waybill, setWaybill] = useState<WaybillInfo | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const waybillNo = router.params.waybillNo as string;
@@ -49,18 +50,134 @@ const EReceiptPage: React.FC = () => {
     });
   };
 
-  const handleDownload = () => {
-    if (!receipt) return;
-    Taro.showLoading({ title: '正在生成...' });
-    setTimeout(() => {
+  const handleDownload = async () => {
+    if (!receipt || !waybill || saving) return;
+
+    setSaving(true);
+    Taro.showLoading({ title: '正在生成回单...' });
+
+    try {
+      const receiptContent = `
+╔══════════════════════════════════════════════════════════════╗
+║                    集装箱运输电子回单                         ║
+║                 ELECTRONIC RECEIPT                          ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║  【回单基本信息】                                            ║
+║  ─────────────────────────────────────────────────────────   ║
+║  回单编号: ${receipt.id.padEnd(42)}║
+║  运单号:   ${receipt.waybillNo.padEnd(42)}║
+║  箱号:     ${receipt.containerNo.padEnd(42)}║
+║  船名:     ${receipt.shipName.padEnd(42)}║
+║  航线:     ${receipt.route.padEnd(42)}║
+║  生成时间: ${receipt.generateTime.padEnd(42)}║
+║                                                              ║
+║  【货物信息】                                                ║
+║  ─────────────────────────────────────────────────────────   ║
+║  货物名称: ${receipt.cargoName.padEnd(43)}║
+║  发货方:   ${receipt.sender.padEnd(43)}║
+║  收货方:   ${receipt.receiver.padEnd(43)}║
+║  货物重量: ${waybill.cargoWeight.padEnd(43)}║
+║  货物体积: ${waybill.cargoVolume.padEnd(43)}║
+║                                                              ║
+║  【节点签收信息】                                            ║
+║  ─────────────────────────────────────────────────────────   ║
+${receipt.nodes.map(node => {
+  const statusMark = node.status === 'completed' ? '✓' : node.status === 'current' ? '●' : '○';
+  const timeStr = node.time || '-';
+  return `║  ${statusMark} ${node.name.padEnd(12)} ${timeStr.padEnd(32)}║`;
+}).join('\n')}
+║                                                              ║
+╠══════════════════════════════════════════════════════════════╣
+║  验证方式: 扫码验证                                          ║
+║  本回单由系统自动生成，具有法律效力                          ║
+╚══════════════════════════════════════════════════════════════╝
+      `;
+
+      const fs = Taro.getFileSystemManager();
+      const filePath = `${Taro.env.USER_DATA_PATH}/receipt_${receipt.waybillNo}_${Date.now()}.txt`;
+      fs.writeFileSync(filePath, receiptContent, 'utf8');
+
+      try {
+        const savedFile = await Taro.saveFile({ tempFilePath: filePath });
+        updateEReceiptFile(receipt.id, savedFile.savedFilePath, 'text');
+
+        setReceipt({
+          ...receipt,
+          filePath: savedFile.savedFilePath,
+          fileType: 'text'
+        });
+
+        Taro.hideLoading();
+
+        Taro.showModal({
+          title: '电子回单生成成功',
+          content: `回单已保存到本地\n\n文件路径: ${savedFile.savedFilePath}\n\n是否立即查看？`,
+          confirmText: '立即查看',
+          cancelText: '稍后查看',
+          success: (res) => {
+            if (res.confirm) {
+              Taro.openDocument({
+                filePath: savedFile.savedFilePath,
+                showMenu: true,
+                success: () => {
+                  Taro.showToast({ title: '回单已打开', icon: 'success' });
+                },
+                fail: () => {
+                  Taro.showToast({
+                    title: '已保存，可在文件管理器中查看',
+                    icon: 'none',
+                    duration: 2000
+                  });
+                }
+              });
+            } else {
+              Taro.showToast({
+                title: '回单已保存',
+                icon: 'success'
+              });
+            }
+          }
+        });
+      } catch {
+        fs.unlinkSync(filePath);
+        Taro.hideLoading();
+        Taro.showToast({
+          title: '保存失败，请重试',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
       Taro.hideLoading();
-      Taro.showModal({
-        title: '电子回单',
-        content: `电子回单已生成\n\n回单编号：${receipt.id}\n运单号：${receipt.waybillNo}\n生成时间：${receipt.generateTime}\n\n可在"我的回单"中查看历史记录`,
-        showCancel: false,
-        confirmText: '知道了'
+      console.error('Generate receipt failed:', error);
+      Taro.showToast({
+        title: '生成回单失败',
+        icon: 'none'
       });
-    }, 1500);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenFile = () => {
+    if (!receipt || !receipt.filePath) {
+      Taro.showToast({
+        title: '请先下载回单',
+        icon: 'none'
+      });
+      return;
+    }
+
+    Taro.openDocument({
+      filePath: receipt.filePath,
+      showMenu: true,
+      fail: () => {
+        Taro.showToast({
+          title: '无法打开文件',
+          icon: 'none'
+        });
+      }
+    });
   };
 
   const getNodeStatusClass = (status: string) => {
@@ -185,15 +302,36 @@ const EReceiptPage: React.FC = () => {
         <Text className={styles.qrHint}>收货人可扫描此二维码验证回单真实性</Text>
       </View>
 
+      {receipt?.filePath && (
+        <View className={styles.fileInfo}>
+          <Text className={styles.fileInfoIcon}>📄</Text>
+          <View className={styles.fileInfoContent}>
+            <Text className={styles.fileInfoTitle}>回单已保存</Text>
+            <Text className={styles.fileInfoPath}>{receipt.filePath}</Text>
+          </View>
+        </View>
+      )}
+
       <View className={styles.actionButtons}>
         <Button className={`${styles.actionBtn} ${styles.secondary}`} onClick={handleShare}>
           <Text className={styles.btnIcon}>📤</Text>
           分享回单
         </Button>
-        <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleDownload}>
-          <Text className={styles.btnIcon}>⬇️</Text>
-          下载回单
-        </Button>
+        {receipt?.filePath ? (
+          <Button className={`${styles.actionBtn} ${styles.primary}`} onClick={handleOpenFile}>
+            <Text className={styles.btnIcon}>📄</Text>
+            打开回单
+          </Button>
+        ) : (
+          <Button
+            className={`${styles.actionBtn} ${styles.primary}`}
+            onClick={handleDownload}
+            disabled={saving}
+          >
+            <Text className={styles.btnIcon}>⬇️</Text>
+            {saving ? '保存中...' : '下载回单'}
+          </Button>
+        )}
       </View>
     </View>
   );

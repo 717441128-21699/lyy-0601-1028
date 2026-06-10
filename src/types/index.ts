@@ -70,6 +70,18 @@ export interface ShipTracking {
 }
 
 export type FeedbackType = 'damage' | 'missing' | 'document' | 'other';
+export type FeedbackStatus = 'pending' | 'processing' | 'need_more' | 'resolved';
+
+export interface FeedbackHistory {
+  id: string;
+  feedbackId: string;
+  action: 'submit' | 'process' | 'request_more' | 'reply' | 'resolve';
+  actionText: string;
+  operator: string;
+  time: string;
+  content: string;
+  photos?: string[];
+}
 
 export interface FeedbackRecord {
   id: string;
@@ -78,11 +90,12 @@ export interface FeedbackRecord {
   waybillNo: string;
   description: string;
   photos: string[];
-  status: 'pending' | 'processing' | 'resolved';
+  status: FeedbackStatus;
   statusText: string;
   createTime: string;
   reply?: string;
   replyTime?: string;
+  history: FeedbackHistory[];
 }
 
 export interface ExpenseItem {
@@ -122,6 +135,8 @@ export interface EReceipt {
   nodes: WaybillNode[];
   generateTime: string;
   qrCode?: string;
+  filePath?: string;
+  fileType?: 'pdf' | 'image';
 }
 
 export interface PaymentRecord {
@@ -133,4 +148,42 @@ export interface PaymentRecord {
   paymentTime: string;
   voucherUrl: string;
   remark?: string;
+}
+
+export type NotificationType = 'delay' | 'departure' | 'arrival' | 'berth';
+
+export interface NotificationRecord {
+  id: string;
+  type: NotificationType;
+  typeText: string;
+  shipName: string;
+  route: string;
+  startPort: string;
+  endPort: string;
+  title: string;
+  content: string;
+  time: string;
+  isRead: boolean;
+  originalTime?: string;
+  estimatedTime?: string;
+}
+
+export interface BillSummary {
+  id: string;
+  waybillNo: string;
+  shipName: string;
+  route: string;
+  startPort: string;
+  endPort: string;
+  totalAmount: number;
+  paidAmount: number;
+  unpaidAmount: number;
+  status: 'paid' | 'partial' | 'unpaid';
+  statusText: string;
+  createTime: string;
+  dueDate: string;
+  expenseIds: string[];
+  paymentRecords: PaymentRecord[];
+  billFileUrl?: string;
+  generateTime?: string;
 }

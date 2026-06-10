@@ -1,6 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Button } from '@tarojs/components';
-import Taro, { useDidShow, usePullDownRefresh, useRouter, eventCenter } from '@tarojs/taro';
+import Taro, {
+  useDidShow,
+  usePullDownRefresh,
+  useRouter,
+  eventCenter,
+  useShareAppMessage,
+  useShareTimeline
+} from '@tarojs/taro';
 import classNames from 'classnames';
 import styles from './index.module.scss';
 import SearchBar from '@/components/SearchBar';
@@ -51,8 +58,19 @@ const WaybillPage: React.FC = () => {
 
   useEffect(() => {
     const waybillNo = router.params.waybillNo as string;
+    const fromShare = router.params.shared as string;
+
     if (waybillNo) {
       handleSearch(waybillNo);
+      if (fromShare === '1') {
+        setTimeout(() => {
+          Taro.showToast({
+            title: '已为您自动查询运单',
+            icon: 'success',
+            duration: 2000
+          });
+        }, 500);
+      }
     }
 
     const handleSearchFromTracking = (event: { waybillNo: string }) => {
@@ -113,14 +131,57 @@ const WaybillPage: React.FC = () => {
 
   const handleShare = () => {
     if (!searchResult) return;
-    Taro.showShareMenu({
-      withShareTicket: true,
-      menus: ['shareAppMessage', 'shareTimeline']
-    });
-    Taro.showToast({
-      title: '请点击右上角分享',
-      icon: 'none'
-    });
+
+    const shareUrl = `/pages/waybill/index?waybillNo=${searchResult.waybillNo}&shared=1`;
+
+    if (process.env.TARO_ENV === 'h5') {
+      const fullUrl = `${window.location.origin}${window.location.pathname}#${shareUrl}`;
+      Taro.setClipboardData({
+        data: fullUrl,
+        success: () => {
+          Taro.showModal({
+            title: '分享链接已复制',
+            content: `链接已复制到剪贴板，收货方打开后可直接查看运单进度和电子回单。\n\n链接：${fullUrl}`,
+            showCancel: false
+          });
+        }
+      });
+    } else {
+      Taro.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      });
+      Taro.showToast({
+        title: '请点击右上角分享',
+        icon: 'none'
+      });
+    }
+  };
+
+  const onShareAppMessage = () => {
+    if (!searchResult) {
+      return {
+        title: '水路运输货主查询',
+        path: '/pages/waybill/index'
+      };
+    }
+    return {
+      title: `运单${searchResult.waybillNo}运输进度`,
+      path: `/pages/waybill/index?waybillNo=${searchResult.waybillNo}&shared=1`,
+      desc: `${searchResult.startPort}→${searchResult.endPort}，当前状态：${searchResult.statusText}`
+    };
+  };
+
+  const onShareTimeline = () => {
+    if (!searchResult) {
+      return {
+        title: '水路运输货主查询'
+      };
+    }
+    return {
+      title: `运单${searchResult.waybillNo}运输进度 - ${searchResult.statusText}`,
+      query: `waybillNo=${searchResult.waybillNo}&shared=1`
+    };
   };
 
   const handleViewReceipt = () => {
@@ -154,6 +215,9 @@ const WaybillPage: React.FC = () => {
     setSearchResult(null);
     setSearchKeyword('');
   };
+
+  useShareAppMessage(onShareAppMessage);
+  useShareTimeline(onShareTimeline);
 
   return (
     <ScrollView className={styles.page} scrollY>

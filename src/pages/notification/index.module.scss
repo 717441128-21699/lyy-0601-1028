@@ -1,0 +1,368 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background-color: $color-bg-page;
+}
+
+.filterBar {
+  background-color: $color-bg-card;
+  padding: 24rpx 32rpx;
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  box-shadow: $shadow-card;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.filterItem {
+  flex: 1;
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  padding: 16rpx 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.filterText {
+  font-size: 26rpx;
+  color: $color-text-secondary;
+  @include text-ellipsis;
+}
+
+.filterValue {
+  font-size: 26rpx;
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+  max-width: 120rpx;
+  @include text-ellipsis;
+}
+
+.header {
+  padding: 24rpx 32rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.unreadCount {
+  font-size: 26rpx;
+  color: $color-text-secondary;
+}
+
+.unreadBadge {
+  display: inline-block;
+  min-width: 36rpx;
+  height: 36rpx;
+  line-height: 36rpx;
+  text-align: center;
+  background-color: $color-error;
+  color: #fff;
+  font-size: 22rpx;
+  border-radius: 18rpx;
+  padding: 0 12rpx;
+  margin-left: 8rpx;
+}
+
+.readAllBtn {
+  font-size: 26rpx;
+  color: $color-primary;
+  padding: 8rpx 16rpx;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.listContainer {
+  padding: 0 32rpx 32rpx;
+}
+
+.notificationCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-lg;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: $shadow-card;
+  position: relative;
+
+  &:active {
+    opacity: 0.9;
+  }
+
+  &.unread {
+    background-color: #fff;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 16rpx;
+      top: 16rpx;
+      width: 16rpx;
+      height: 16rpx;
+      background-color: $color-error;
+      border-radius: 50%;
+    }
+  }
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16rpx;
+}
+
+.typeTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 20rpx;
+  border-radius: $radius-md;
+  font-size: 24rpx;
+
+  &.delay {
+    background-color: rgba(245, 63, 63, 0.1);
+    color: $color-error;
+  }
+
+  &.departure {
+    background-color: rgba(0, 119, 200, 0.1);
+    color: $color-primary;
+  }
+
+  &.arrival {
+    background-color: rgba(0, 180, 42, 0.1);
+    color: $color-success;
+  }
+
+  &.berth {
+    background-color: rgba(255, 125, 0, 0.1);
+    color: $color-warning;
+  }
+}
+
+.timeText {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}
+
+.title {
+  font-size: 30rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: 12rpx;
+  line-height: 1.4;
+}
+
+.content {
+  font-size: 26rpx;
+  color: $color-text-secondary;
+  line-height: 1.6;
+  margin-bottom: 20rpx;
+}
+
+.timeInfo {
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.timeRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12rpx;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.timeLabel {
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}
+
+.timeValue {
+  font-size: 24rpx;
+  color: $color-text-primary;
+  font-weight: $font-weight-medium;
+
+  &.changed {
+    color: $color-error;
+  }
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20rpx;
+  border-top: 1rpx solid $color-divider;
+}
+
+.shipInfo {
+  display: flex;
+  gap: 16rpx;
+  font-size: 24rpx;
+  color: $color-text-tertiary;
+}
+
+.shipName {
+  color: $color-primary;
+  font-weight: $font-weight-medium;
+}
+
+.actionBtn {
+  font-size: 24rpx;
+  color: $color-primary;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.emptyState {
+  text-align: center;
+  padding: 120rpx 32rpx;
+}
+
+.emptyIcon {
+  font-size: 120rpx;
+  color: $color-text-disabled;
+  margin-bottom: 24rpx;
+}
+
+.emptyText {
+  font-size: 28rpx;
+  color: $color-text-tertiary;
+  margin-bottom: 8rpx;
+}
+
+.emptySubText {
+  font-size: 24rpx;
+  color: $color-text-disabled;
+}
+
+.filterPanel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+
+  &.hidden {
+    display: none;
+  }
+}
+
+.filterContent {
+  background-color: $color-bg-card;
+  width: 100%;
+  max-height: 70vh;
+  border-top-left-radius: $radius-lg;
+  border-top-right-radius: $radius-lg;
+  padding: 32rpx;
+}
+
+.filterHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.filterTitle {
+  font-size: 32rpx;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.filterReset {
+  font-size: 26rpx;
+  color: $color-text-tertiary;
+
+  &:active {
+    opacity: 0.7;
+  }
+}
+
+.filterSection {
+  margin-bottom: 32rpx;
+}
+
+.filterSectionTitle {
+  font-size: 28rpx;
+  font-weight: $font-weight-medium;
+  color: $color-text-primary;
+  margin-bottom: 16rpx;
+}
+
+.filterOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.filterOption {
+  padding: 16rpx 32rpx;
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  font-size: 26rpx;
+  color: $color-text-secondary;
+  border: 2rpx solid transparent;
+
+  &.active {
+    background-color: rgba(0, 119, 200, 0.08);
+    border-color: $color-primary;
+    color: $color-primary;
+  }
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.filterActions {
+  display: flex;
+  gap: 24rpx;
+  margin-top: 32rpx;
+}
+
+.filterActionBtn {
+  flex: 1;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  border-radius: $radius-button;
+  font-size: 30rpx;
+  font-weight: $font-weight-medium;
+
+  &.cancel {
+    background-color: $color-bg-page;
+    color: $color-text-secondary;
+  }
+
+  &.confirm {
+    background: linear-gradient(135deg, $color-primary 0%, $color-primary-light 100%);
+    color: #fff;
+  }
+
+  &:active {
+    opacity: 0.9;
+    transform: scale(0.98);
+  }
+}
