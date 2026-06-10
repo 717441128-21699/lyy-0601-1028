@@ -1,93 +1,96 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Button } from '@tarojs/components';
-import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
+import Taro, { useDidShow, usePullDownRefresh, useRouter, eventCenter } from '@tarojs/taro';
 import classNames from 'classnames';
 import styles from './index.module.scss';
 import SearchBar from '@/components/SearchBar';
 import StatusBadge from '@/components/StatusBadge';
 import Timeline from '@/components/Timeline';
 import EmptyState from '@/components/EmptyState';
-import { mockWaybills, getWaybillByNo } from '@/data/waybill';
+import { useAppStore } from '@/store';
 import type { WaybillInfo } from '@/types';
 
 const WaybillPage: React.FC = () => {
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const router = useRouter();
+  const {
+    waybills,
+    searchHistory,
+    addSearchHistory,
+    clearSearchHistory,
+    getWaybillByNo,
+    generateEReceipt
+  } = useAppStore();
+
   const [searchResult, setSearchResult] = useState<WaybillInfo | null>(null);
-  const [recentWaybills, setRecentWaybills] = useState<WaybillInfo[]>([]);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadRecentWaybills();
-    loadSearchHistory();
-  }, []);
+  const recentWaybills = waybills.slice(0, 3);
 
-  useDidShow(() => {
-    loadRecentWaybills();
-  });
+  const handleSearch = useCallback((waybillNo: string) => {
+    const keyword = waybillNo.trim();
+    if (!keyword) return;
 
-  usePullDownRefresh(() => {
-    loadRecentWaybills();
-    if (searchResult) {
-      handleSearch(searchResult.waybillNo);
-    }
-    setTimeout(() => {
-      Taro.stopPullDownRefresh();
-    }, 1000);
-  });
-
-  const loadRecentWaybills = () => {
-    setRecentWaybills(mockWaybills.slice(0, 3));
-  };
-
-  const loadSearchHistory = () => {
-    try {
-      const history = Taro.getStorageSync('waybill_search_history') || [];
-      setSearchHistory(history);
-    } catch (e) {
-      console.error('[WaybillPage] loadSearchHistory failed:', e);
-    }
-  };
-
-  const saveSearchHistory = (waybillNo: string) => {
-    try {
-      let history = Taro.getStorageSync('waybill_search_history') || [];
-      history = history.filter((h: string) => h !== waybillNo);
-      history.unshift(waybillNo);
-      history = history.slice(0, 10);
-      Taro.setStorageSync('waybill_search_history', history);
-      setSearchHistory(history);
-    } catch (e) {
-      console.error('[WaybillPage] saveSearchHistory failed:', e);
-    }
-  };
-
-  const handleSearch = (waybillNo: string) => {
     setLoading(true);
     setTimeout(() => {
-      const result = getWaybillByNo(waybillNo);
+      const result = getWaybillByNo(keyword);
       if (result) {
         setSearchResult(result);
-        saveSearchHistory(waybillNo);
-        console.log('[WaybillPage] 查询成功:', waybillNo);
+        setSearchKeyword(keyword);
+        addSearchHistory(keyword);
+        Taro.showToast({ title: '查询成功', icon: 'success' });
       } else {
         Taro.showToast({
           title: '未找到该运单',
           icon: 'none'
         });
-        console.log('[WaybillPage] 未找到运单:', waybillNo);
       }
       setLoading(false);
-    }, 500);
-  };
+    }, 300);
+  }, [getWaybillByNo, addSearchHistory]);
+
+  useEffect(() => {
+    const waybillNo = router.params.waybillNo as string;
+    if (waybillNo) {
+      handleSearch(waybillNo);
+    }
+
+    const handleSearchFromTracking = (event: { waybillNo: string }) => {
+      handleSearch(event.waybillNo);
+    };
+
+    eventCenter.on('searchWaybill', handleSearchFromTracking);
+    return () => {
+      eventCenter.off('searchWaybill', handleSearchFromTracking);
+    };
+  }, [router.params, handleSearch]);
+
+  useDidShow(() => {
+    const waybillNo = router.params.waybillNo as string;
+    if (waybillNo && !searchResult) {
+      handleSearch(waybillNo);
+    }
+  });
+
+  usePullDownRefresh(() => {
+    if (searchResult) {
+      const result = getWaybillByNo(searchResult.waybillNo);
+      if (result) {
+        setSearchResult(result);
+      }
+    }
+    setTimeout(() => {
+      Taro.stopPullDownRefresh();
+      Taro.showToast({ title: '刷新成功', icon: 'success' });
+    }, 800);
+  });
 
   const handleScan = () => {
     Taro.scanCode({
       success: (res) => {
-        console.log('[WaybillPage] 扫码结果:', res.result);
         handleSearch(res.result);
       },
-      fail: (err) => {
-        console.error('[WaybillPage] 扫码失败:', err);
+      fail: () => {
         Taro.showToast({
           title: '扫码失败，请重试',
           icon: 'none'
@@ -102,12 +105,7 @@ const WaybillPage: React.FC = () => {
       content: '确定清空搜索历史？',
       success: (res) => {
         if (res.confirm) {
-          try {
-            Taro.removeStorageSync('waybill_search_history');
-            setSearchHistory([]);
-          } catch (e) {
-            console.error('[WaybillPage] clearHistory failed:', e);
-          }
+          clearSearchHistory();
         }
       }
     });
@@ -116,26 +114,21 @@ const WaybillPage: React.FC = () => {
   const handleShare = () => {
     if (!searchResult) return;
     Taro.showShareMenu({
-      withShareTicket: true
+      withShareTicket: true,
+      menus: ['shareAppMessage', 'shareTimeline']
     });
     Taro.showToast({
       title: '请点击右上角分享',
       icon: 'none'
     });
-    console.log('[WaybillPage] 分享运单:', searchResult.waybillNo);
   };
 
-  const handleDownloadReceipt = () => {
+  const handleViewReceipt = () => {
     if (!searchResult) return;
-    Taro.showLoading({ title: '正在生成...' });
-    setTimeout(() => {
-      Taro.hideLoading();
-      Taro.showToast({
-        title: '电子回单已下载',
-        icon: 'success'
-      });
-      console.log('[WaybillPage] 下载电子回单:', searchResult.waybillNo);
-    }, 1500);
+    generateEReceipt(searchResult);
+    Taro.navigateTo({
+      url: `/pages/e-receipt/index?waybillNo=${searchResult.waybillNo}`
+    });
   };
 
   const handleContact = () => {
@@ -145,13 +138,21 @@ const WaybillPage: React.FC = () => {
   };
 
   const handleViewDetail = (waybillNo: string) => {
-    Taro.navigateTo({
-      url: `/pages/waybill-detail/index?waybillNo=${waybillNo}`
+    handleSearch(waybillNo);
+  };
+
+  const handleViewTracking = (shipName: string) => {
+    Taro.switchTab({
+      url: '/pages/tracking/index'
     });
+    setTimeout(() => {
+      eventCenter.trigger('searchShip', { shipName });
+    }, 300);
   };
 
   const handleBackToSearch = () => {
     setSearchResult(null);
+    setSearchKeyword('');
   };
 
   return (
@@ -164,6 +165,7 @@ const WaybillPage: React.FC = () => {
       <View className={styles.searchSection}>
         <SearchBar
           placeholder="请输入运单号，如 SY202406100001"
+          value={searchKeyword}
           onSearch={handleSearch}
           onScan={handleScan}
         />
@@ -190,9 +192,11 @@ const WaybillPage: React.FC = () => {
             </View>
 
             <View className={styles.infoGrid}>
-              <View className={styles.infoItem}>
+              <View className={styles.infoItem} onClick={() => handleViewTracking(searchResult.shipName)}>
                 <Text className={styles.infoLabel}>船名</Text>
-                <Text className={styles.infoValue}>{searchResult.shipName}</Text>
+                <Text className={`${styles.infoValue} ${styles.infoValueLink}`}>
+                  🚢 {searchResult.shipName} →
+                </Text>
               </View>
               <View className={styles.infoItem}>
                 <Text className={styles.infoLabel}>箱号</Text>
@@ -207,6 +211,23 @@ const WaybillPage: React.FC = () => {
                 <Text className={styles.infoValue}>{searchResult.estimatedArrivalTime}</Text>
               </View>
             </View>
+
+            <View className={styles.extraInfo}>
+              <View className={styles.extraRow}>
+                <Text className={styles.extraLabel}>发货方</Text>
+                <Text className={styles.extraValue}>{searchResult.sender}</Text>
+              </View>
+              <View className={styles.extraRow}>
+                <Text className={styles.extraLabel}>收货方</Text>
+                <Text className={styles.extraValue}>{searchResult.receiver}</Text>
+              </View>
+              <View className={styles.extraRow}>
+                <Text className={styles.extraLabel}>货物信息</Text>
+                <Text className={styles.extraValue}>
+                  {searchResult.cargoWeight} / {searchResult.cargoVolume}
+                </Text>
+              </View>
+            </View>
           </View>
 
           <View className={styles.actionBar}>
@@ -214,7 +235,7 @@ const WaybillPage: React.FC = () => {
               <Text className={styles.actionIcon}>📤</Text>
               <Text className={styles.actionText}>分享进度</Text>
             </View>
-            <View className={styles.actionItem} onClick={handleDownloadReceipt}>
+            <View className={styles.actionItem} onClick={handleViewReceipt}>
               <Text className={styles.actionIcon}>📄</Text>
               <Text className={styles.actionText}>电子回单</Text>
             </View>

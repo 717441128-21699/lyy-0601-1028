@@ -104,4 +104,33 @@ export interface ExpenseInfo {
   items: ExpenseItem[];
   createTime: string;
   dueDate: string;
+  paymentVoucher?: string;
+  paidTime?: string;
+}
+
+export interface EReceipt {
+  id: string;
+  waybillNo: string;
+  containerNo: string;
+  shipName: string;
+  route: string;
+  startPort: string;
+  endPort: string;
+  cargoName: string;
+  sender: string;
+  receiver: string;
+  nodes: WaybillNode[];
+  generateTime: string;
+  qrCode?: string;
+}
+
+export interface PaymentRecord {
+  id: string;
+  expenseId: string;
+  waybillNo: string;
+  amount: number;
+  paymentMethod: string;
+  paymentTime: string;
+  voucherUrl: string;
+  remark?: string;
 }

@@ -1,113 +1,179 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, Button } from '@tarojs/components';
-import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
+import React, { useState, useMemo } from 'react';
+import { View, Text, ScrollView, Button, Input, Picker } from '@tarojs/components';
+import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classNames from 'classnames';
 import styles from './index.module.scss';
 import StatusBadge from '@/components/StatusBadge';
 import EmptyState from '@/components/EmptyState';
-import { mockExpenses, expenseTypeMap } from '@/data/expense';
+import { useAppStore } from '@/store';
+import { expenseTypeMap } from '@/data/expense';
 import type { ExpenseInfo } from '@/types';
 
 const ExpensePage: React.FC = () => {
+  const { expenses, waybills, updateExpensePayment, getExpensesByWaybillNo } = useAppStore();
+
   const [activeTab, setActiveTab] = useState<'all' | 'unpaid' | 'paid'>('all');
-  const [expenses, setExpenses] = useState<ExpenseInfo[]>([]);
-  const [filteredExpenses, setFilteredExpenses] = useState<ExpenseInfo[]>([]);
-  const [totalUnpaid, setTotalUnpaid] = useState(0);
-  const [totalPaid, setTotalPaid] = useState(0);
-  const [totalAmount, setTotalAmount] = useState(0);
+  const [searchWaybillNo, setSearchWaybillNo] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
+  const [selectedWaybill, setSelectedWaybill] = useState('');
+  const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadExpenses();
-  }, []);
+  const waybillOptions = useMemo(() => {
+    return ['全部运单', ...waybills.map(w => w.waybillNo)];
+  }, [waybills]);
 
-  useDidShow(() => {
-    loadExpenses();
-  });
+  const statistics = useMemo(() => {
+    const unpaid = expenses
+      .filter(e => e.status === 'unpaid' || e.status === 'partial')
+      .reduce((sum, e) => sum + e.unpaidAmount, 0);
+    const paid = expenses.reduce((sum, e) => sum + e.paidAmount, 0);
+    const total = expenses.reduce((sum, e) => sum + e.totalAmount, 0);
+    return { totalUnpaid: unpaid, totalPaid: paid, totalAmount: total };
+  }, [expenses]);
+
+  const filteredExpenses = useMemo(() => {
+    let data = expenses;
+
+    if (activeTab === 'unpaid') {
+      data = data.filter(e => e.status === 'unpaid' || e.status === 'partial');
+    } else if (activeTab === 'paid') {
+      data = data.filter(e => e.status === 'paid');
+    }
+
+    if (selectedWaybill && selectedWaybill !== '全部运单') {
+      data = data.filter(e => e.waybillNo === selectedWaybill);
+    }
+
+    if (searchWaybillNo.trim()) {
+      data = getExpensesByWaybillNo(searchWaybillNo.trim());
+    }
+
+    return data.sort((a, b) =>
+      new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+    );
+  }, [expenses, activeTab, selectedWaybill, searchWaybillNo, getExpensesByWaybillNo]);
 
   usePullDownRefresh(() => {
-    loadExpenses();
     setTimeout(() => {
       Taro.stopPullDownRefresh();
-    }, 1000);
+      Taro.showToast({ title: '刷新成功', icon: 'success' });
+    }, 800);
   });
-
-  const loadExpenses = () => {
-    setExpenses(mockExpenses);
-    filterExpenses(mockExpenses, activeTab);
-    calculateStatistics(mockExpenses);
-    console.log('[ExpensePage] 加载费用数据');
-  };
-
-  const calculateStatistics = (data: ExpenseInfo[]) => {
-    const unpaid = data.filter(e => e.status === 'unpaid' || e.status === 'partial').reduce((sum, e) => sum + e.unpaidAmount, 0);
-    const paid = data.reduce((sum, e) => sum + e.paidAmount, 0);
-    const total = data.reduce((sum, e) => sum + e.totalAmount, 0);
-    setTotalUnpaid(unpaid);
-    setTotalPaid(paid);
-    setTotalAmount(total);
-  };
-
-  const filterExpenses = (data: ExpenseInfo[], tab: string) => {
-    let filtered = data;
-    if (tab === 'unpaid') {
-      filtered = data.filter(e => e.status === 'unpaid' || e.status === 'partial');
-    } else if (tab === 'paid') {
-      filtered = data.filter(e => e.status === 'paid');
-    }
-    setFilteredExpenses(filtered);
-  };
 
   const handleTabChange = (tab: 'all' | 'unpaid' | 'paid') => {
     setActiveTab(tab);
-    filterExpenses(expenses, tab);
   };
 
-  const handlePay = (expense: ExpenseInfo) => {
+  const handleSearch = () => {
+    if (searchWaybillNo.trim()) {
+      const result = getExpensesByWaybillNo(searchWaybillNo.trim());
+      if (result.length === 0) {
+        Taro.showToast({
+          title: '未找到该运单的费用',
+          icon: 'none'
+        });
+      }
+    }
+  };
+
+  const handleResetFilter = () => {
+    setSelectedWaybill('');
+    setSearchWaybillNo('');
+    Taro.showToast({ title: '已重置', icon: 'success' });
+  };
+
+  const handlePay = async (expense: ExpenseInfo) => {
+    if (payingId) return;
+
     Taro.showModal({
       title: '确认支付',
       content: `确认支付 ¥${expense.unpaidAmount.toFixed(2)}？`,
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
+          setPayingId(expense.id);
           Taro.showLoading({ title: '支付中...' });
-          setTimeout(() => {
-            Taro.hideLoading();
-            const updated = expenses.map(e =>
-              e.id === expense.id
-                ? { ...e, status: 'paid' as const, statusText: '已支付', paidAmount: e.totalAmount, unpaidAmount: 0 }
-                : e
+
+          try {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const voucherUrl = `https://example.com/voucher/${expense.id}_${Date.now()}.png`;
+
+            updateExpensePayment(
+              expense.id,
+              expense.unpaidAmount,
+              '微信支付',
+              voucherUrl
             );
-            setExpenses(updated);
-            filterExpenses(updated, activeTab);
-            calculateStatistics(updated);
+
+            Taro.hideLoading();
             Taro.showToast({
               title: '支付成功',
               icon: 'success'
             });
-            console.log('[ExpensePage] 支付成功:', expense.waybillNo);
-          }, 1500);
+          } catch (error) {
+            Taro.hideLoading();
+            Taro.showToast({
+              title: '支付失败，请重试',
+              icon: 'none'
+            });
+          } finally {
+            setPayingId(null);
+          }
         }
       }
     });
   };
 
-  const handleViewDetail = (expense: ExpenseInfo) => {
-    Taro.showToast({
-      title: '查看费用详情',
-      icon: 'none'
+  const handleViewVoucher = (expense: ExpenseInfo) => {
+    if (!expense.paymentVoucher) {
+      Taro.showToast({
+        title: '暂无付款凭证',
+        icon: 'none'
+      });
+      return;
+    }
+    Taro.previewImage({
+      urls: [expense.paymentVoucher],
+      current: expense.paymentVoucher
     });
-    console.log('[ExpensePage] 查看费用详情:', expense.waybillNo);
+  };
+
+  const handleDownloadBill = (expense: ExpenseInfo) => {
+    Taro.showLoading({ title: '正在生成账单...' });
+    setTimeout(() => {
+      Taro.hideLoading();
+      Taro.showModal({
+        title: '账单明细',
+        content: `运单号：${expense.waybillNo}\n账单金额：¥${expense.totalAmount.toFixed(2)}\n已支付：¥${expense.paidAmount.toFixed(2)}\n待支付：¥${expense.unpaidAmount.toFixed(2)}\n\n账单明细已生成，可在"我的账单"中查看历史记录。`,
+        showCancel: false,
+        confirmText: '知道了'
+      });
+    }, 1000);
   };
 
   const handleDownloadInvoice = (expense: ExpenseInfo) => {
-    Taro.showLoading({ title: '正在生成...' });
+    Taro.showLoading({ title: '正在生成发票...' });
     setTimeout(() => {
       Taro.hideLoading();
       Taro.showToast({
-        title: '发票已下载',
+        title: '发票已生成',
         icon: 'success'
       });
-      console.log('[ExpensePage] 下载发票:', expense.waybillNo);
     }, 1000);
+  };
+
+  const handleViewWaybill = (waybillNo: string) => {
+    Taro.switchTab({
+      url: '/pages/waybill/index'
+    });
+    setTimeout(() => {
+      Taro.eventCenter.trigger('searchWaybill', { waybillNo });
+    }, 300);
+  };
+
+  const toggleCardExpand = (id: string) => {
+    setExpandedCardId(expandedCardId === id ? null : id);
   };
 
   const getTypeColor = (type: string) => {
@@ -131,18 +197,63 @@ const ExpensePage: React.FC = () => {
 
       <View className={styles.summaryCard}>
         <Text className={styles.summaryLabel}>待支付金额</Text>
-        <Text className={styles.summaryAmount}>{formatAmount(totalUnpaid)}</Text>
+        <Text className={styles.summaryAmount}>{formatAmount(statistics.totalUnpaid)}</Text>
         <View className={styles.summaryRow}>
           <View className={styles.summaryItem}>
             <Text className={styles.summaryItemLabel}>已支付</Text>
-            <Text className={styles.summaryItemValue}>{formatAmount(totalPaid)}</Text>
+            <Text className={styles.summaryItemValue}>{formatAmount(statistics.totalPaid)}</Text>
           </View>
           <View className={styles.summaryItem}>
             <Text className={styles.summaryItemLabel}>总金额</Text>
-            <Text className={styles.summaryItemValue}>{formatAmount(totalAmount)}</Text>
+            <Text className={styles.summaryItemValue}>{formatAmount(statistics.totalAmount)}</Text>
           </View>
         </View>
       </View>
+
+      <View className={styles.filterBar}>
+        <View className={styles.searchInputWrapper}>
+          <Input
+            className={styles.searchInput}
+            placeholder="输入运单号筛选"
+            value={searchWaybillNo}
+            onInput={(e) => setSearchWaybillNo(e.detail.value)}
+            onConfirm={handleSearch}
+          />
+          <Button className={styles.searchBtn} onClick={handleSearch}>搜索</Button>
+        </View>
+        <View className={styles.filterActions}>
+          <Button
+            className={classNames(styles.filterBtn, { [styles.active]: showFilter })}
+            onClick={() => setShowFilter(!showFilter)}
+          >
+            🔍 筛选
+          </Button>
+          {(selectedWaybill || searchWaybillNo) && (
+            <Text className={styles.resetBtn} onClick={handleResetFilter}>重置</Text>
+          )}
+        </View>
+      </View>
+
+      {showFilter && (
+        <View className={styles.filterPanel}>
+          <View className={styles.filterItem}>
+            <Text className={styles.filterLabel}>按运单筛选</Text>
+            <Picker
+              mode="selector"
+              range={waybillOptions}
+              value={waybillOptions.indexOf(selectedWaybill || '全部运单')}
+              onChange={(e) => setSelectedWaybill(waybillOptions[e.detail.value])}
+            >
+              <Button className={styles.pickerBtn}>
+                <Text className={styles.pickerText}>
+                  {selectedWaybill || '请选择运单'}
+                </Text>
+                <Text className={styles.pickerIcon}>▼</Text>
+              </Button>
+            </Picker>
+          </View>
+        </View>
+      )}
 
       <View className={styles.tabs}>
         <Text
@@ -156,6 +267,11 @@ const ExpensePage: React.FC = () => {
           onClick={() => handleTabChange('unpaid')}
         >
           待支付
+          {filteredExpenses.filter(e => e.status === 'unpaid' || e.status === 'partial').length > 0 && (
+            <Text className={styles.tabBadge}>
+              {filteredExpenses.filter(e => e.status === 'unpaid' || e.status === 'partial').length}
+            </Text>
+          )}
         </Text>
         <Text
           className={classNames(styles.tabItem, { [styles.active]: activeTab === 'paid' })}
@@ -169,12 +285,31 @@ const ExpensePage: React.FC = () => {
         <View className={styles.expenseList}>
           {filteredExpenses.map(expense => (
             <View key={expense.id} className={styles.expenseCard}>
-              <View className={styles.cardHeader}>
+              <View
+                className={styles.cardHeader}
+                onClick={() => toggleCardExpand(expense.id)}
+              >
                 <View>
-                  <Text className={styles.waybillNo}>运单号: {expense.waybillNo}</Text>
+                  <Text
+                    className={styles.waybillNo}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewWaybill(expense.waybillNo);
+                    }}
+                  >
+                    运单号: {expense.waybillNo} →
+                  </Text>
                   <Text className={styles.createTime}>账单日期: {expense.createTime}</Text>
+                  {expense.paidTime && (
+                    <Text className={styles.paidTime}>支付时间: {expense.paidTime}</Text>
+                  )}
                 </View>
-                <StatusBadge status={expense.status} text={expense.statusText} />
+                <View style={{ alignItems: 'flex-end' }}>
+                  <StatusBadge status={expense.status} text={expense.statusText} />
+                  <Text className={styles.expandIcon}>
+                    {expandedCardId === expense.id ? '▲' : '▼'}
+                  </Text>
+                </View>
               </View>
 
               <View className={styles.amountRow}>
@@ -182,44 +317,71 @@ const ExpensePage: React.FC = () => {
                 <Text className={styles.amountValue}>{formatAmount(expense.totalAmount)}</Text>
               </View>
 
-              <View className={styles.itemList}>
-                {expense.items.map(item => (
-                  <View key={item.id}>
-                    <View className={styles.itemRow}>
-                      <View className={styles.itemLeft}>
-                        <Text
-                          className={styles.itemTag}
-                          style={{
-                            backgroundColor: `${getTypeColor(item.type)}15`,
-                            color: getTypeColor(item.type)
-                          }}
-                        >
-                          {getTypeLabel(item.type)}
-                        </Text>
-                        <Text className={styles.itemName}>{item.name}</Text>
+              {(expandedCardId === expense.id || expense.status !== 'paid') && (
+                <View className={styles.itemList}>
+                  {expense.items.map(item => (
+                    <View key={item.id}>
+                      <View className={styles.itemRow}>
+                        <View className={styles.itemLeft}>
+                          <Text
+                            className={styles.itemTag}
+                            style={{
+                              backgroundColor: `${getTypeColor(item.type)}15`,
+                              color: getTypeColor(item.type)
+                            }}
+                          >
+                            {getTypeLabel(item.type)}
+                          </Text>
+                          <Text className={styles.itemName}>{item.name}</Text>
+                        </View>
+                        <Text className={styles.itemAmount}>{formatAmount(item.amount)}</Text>
                       </View>
-                      <Text className={styles.itemAmount}>{formatAmount(item.amount)}</Text>
+                      {item.remark && (
+                        <Text className={styles.itemRemark}>备注: {item.remark}</Text>
+                      )}
                     </View>
-                    {item.remark && (
-                      <Text className={styles.itemRemark}>备注: {item.remark}</Text>
-                    )}
-                  </View>
-                ))}
+                  ))}
+                </View>
+              )}
+
+              <View className={styles.paymentSummary}>
+                <Text className={styles.paidAmount}>已支付: {formatAmount(expense.paidAmount)}</Text>
+                <Text
+                  className={classNames(styles.unpaidAmount, {
+                    [styles.warning]: expense.unpaidAmount > 0
+                  })}
+                >
+                  待支付: {formatAmount(expense.unpaidAmount)}
+                </Text>
               </View>
 
               <View className={styles.cardFooter}>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text
                     className={classNames(styles.dueInfo, {
                       [styles.dueWarning]: expense.status === 'unpaid' || expense.status === 'partial'
                     })}
                   >
                     {expense.status === 'paid'
-                      ? `已支付: ${formatAmount(expense.paidAmount)}`
-                      : `待支付: ${formatAmount(expense.unpaidAmount)} | 截止: ${expense.dueDate}`}
+                      ? '已全额支付'
+                      : `截止日期: ${expense.dueDate}`}
                   </Text>
                 </View>
-                <View style={{ display: 'flex', gap: '16rpx' }}>
+                <View className={styles.actionGroup}>
+                  <Button
+                    className={classNames(styles.actionBtn, styles.secondary)}
+                    onClick={() => handleDownloadBill(expense)}
+                  >
+                    账单
+                  </Button>
+                  {expense.status === 'paid' && (
+                    <Button
+                      className={classNames(styles.actionBtn, styles.secondary)}
+                      onClick={() => handleViewVoucher(expense)}
+                    >
+                      凭证
+                    </Button>
+                  )}
                   <Button
                     className={classNames(styles.actionBtn, styles.secondary)}
                     onClick={() => handleDownloadInvoice(expense)}
@@ -228,10 +390,13 @@ const ExpensePage: React.FC = () => {
                   </Button>
                   {(expense.status === 'unpaid' || expense.status === 'partial') && (
                     <Button
-                      className={classNames(styles.actionBtn, styles.primary)}
+                      className={classNames(styles.actionBtn, styles.primary, {
+                        [styles.disabled]: payingId === expense.id
+                      })}
                       onClick={() => handlePay(expense)}
+                      disabled={payingId === expense.id}
                     >
-                      去支付
+                      {payingId === expense.id ? '支付中...' : '去支付'}
                     </Button>
                   )}
                 </View>
@@ -245,6 +410,8 @@ const ExpensePage: React.FC = () => {
             icon="💰"
             title="暂无费用记录"
             description={activeTab === 'all' ? '暂无费用账单' : activeTab === 'unpaid' ? '暂无待支付费用' : '暂无已支付费用'}
+            actionText={selectedWaybill || searchWaybillNo ? '重置筛选' : undefined}
+            onAction={selectedWaybill || searchWaybillNo ? handleResetFilter : undefined}
           />
         </View>
       )}

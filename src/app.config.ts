@@ -7,7 +7,8 @@ export default defineAppConfig({
     'pages/expense/index',
     'pages/waybill-detail/index',
     'pages/subscription-detail/index',
-    'pages/customer-service/index'
+    'pages/customer-service/index',
+    'pages/e-receipt/index'
   ],
   window: {
     backgroundTextStyle: 'light',

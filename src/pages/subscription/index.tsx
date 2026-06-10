@@ -1,79 +1,79 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Button, Picker } from '@tarojs/components';
-import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
+import Taro, { usePullDownRefresh } from '@tarojs/taro';
 import classNames from 'classnames';
 import styles from './index.module.scss';
 import StatusBadge from '@/components/StatusBadge';
 import EmptyState from '@/components/EmptyState';
-import { mockSubscriptions, mockRoutes, mockShipNames } from '@/data/subscription';
+import { useAppStore } from '@/store';
+import { mockRoutes, mockShipNames } from '@/data/subscription';
 import type { Subscription } from '@/types';
 
 const notifyTypes = ['开航提醒', '靠泊提醒', '延误提醒', '到港提醒'];
 
 const SubscriptionPage: React.FC = () => {
+  const {
+    subscriptions,
+    toggleSubscription,
+    getSubscribedSubscriptions
+  } = useAppStore();
+
   const [activeTab, setActiveTab] = useState<'all' | 'subscribed'>('all');
   const [selectedRoute, setSelectedRoute] = useState('');
   const [selectedShip, setSelectedShip] = useState('');
   const [selectedNotifyTypes, setSelectedNotifyTypes] = useState<string[]>(['开航提醒', '靠泊提醒', '延误提醒']);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [filteredSubscriptions, setFilteredSubscriptions] = useState<Subscription[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    loadSubscriptions();
-  }, []);
-
-  useDidShow(() => {
-    loadSubscriptions();
-  });
+  const [hasSearched, setHasSearched] = useState(false);
 
   usePullDownRefresh(() => {
-    loadSubscriptions();
     setTimeout(() => {
       Taro.stopPullDownRefresh();
-    }, 1000);
+      Taro.showToast({ title: '刷新成功', icon: 'success' });
+    }, 800);
   });
 
-  const loadSubscriptions = () => {
-    setSubscriptions(mockSubscriptions);
-    filterSubscriptions(mockSubscriptions);
-  };
+  const subscribedCount = useMemo(() => {
+    return getSubscribedSubscriptions().length;
+  }, [getSubscribedSubscriptions]);
 
-  const filterSubscriptions = (data: Subscription[]) => {
-    let filtered = data;
-    if (activeTab === 'subscribed') {
-      filtered = filtered.filter(s => s.isSubscribed);
+  const filteredSubscriptions = useMemo(() => {
+    let data = activeTab === 'subscribed'
+      ? getSubscribedSubscriptions()
+      : subscriptions;
+
+    if (hasSearched) {
+      if (selectedRoute) {
+        data = data.filter(s => s.route === selectedRoute);
+      }
+      if (selectedShip) {
+        data = data.filter(s => s.shipName === selectedShip);
+      }
     }
-    setFilteredSubscriptions(filtered);
-  };
+
+    return data;
+  }, [activeTab, subscriptions, getSubscribedSubscriptions, selectedRoute, selectedShip, hasSearched]);
 
   const handleTabChange = (tab: 'all' | 'subscribed') => {
     setActiveTab(tab);
-    filterSubscriptions(subscriptions);
   };
 
   const handleSearch = () => {
     if (!selectedRoute && !selectedShip) {
+      setHasSearched(false);
       Taro.showToast({
         title: '请选择航线或船名',
         icon: 'none'
       });
       return;
     }
+    setHasSearched(true);
+    Taro.showToast({ title: '搜索完成', icon: 'success' });
+  };
 
-    setLoading(true);
-    setTimeout(() => {
-      let filtered = mockSubscriptions;
-      if (selectedRoute) {
-        filtered = filtered.filter(s => s.route === selectedRoute);
-      }
-      if (selectedShip) {
-        filtered = filtered.filter(s => s.shipName === selectedShip);
-      }
-      setFilteredSubscriptions(filtered);
-      setLoading(false);
-      console.log('[SubscriptionPage] 搜索条件:', { route: selectedRoute, ship: selectedShip });
-    }, 500);
+  const handleReset = () => {
+    setSelectedRoute('');
+    setSelectedShip('');
+    setHasSearched(false);
+    Taro.showToast({ title: '已重置', icon: 'success' });
   };
 
   const handleSubscribe = (item: Subscription) => {
@@ -83,30 +83,20 @@ const SubscriptionPage: React.FC = () => {
         content: '确定要取消订阅吗？',
         success: (res) => {
           if (res.confirm) {
-            const updated = subscriptions.map(s =>
-              s.id === item.id ? { ...s, isSubscribed: false } : s
-            );
-            setSubscriptions(updated);
-            filterSubscriptions(updated);
+            toggleSubscription(item.id);
             Taro.showToast({
               title: '已取消订阅',
               icon: 'success'
             });
-            console.log('[SubscriptionPage] 取消订阅:', item.shipName);
           }
         }
       });
     } else {
-      const updated = subscriptions.map(s =>
-        s.id === item.id ? { ...s, isSubscribed: true, notifyTypes: selectedNotifyTypes } : s
-      );
-      setSubscriptions(updated);
-      filterSubscriptions(updated);
+      toggleSubscription(item.id);
       Taro.showToast({
         title: '订阅成功',
         icon: 'success'
       });
-      console.log('[SubscriptionPage] 订阅成功:', item.shipName);
     }
   };
 
@@ -124,6 +114,15 @@ const SubscriptionPage: React.FC = () => {
     Taro.navigateTo({
       url: `/pages/subscription-detail/index?id=${item.id}`
     });
+  };
+
+  const handleViewTracking = (shipName: string) => {
+    Taro.switchTab({
+      url: '/pages/tracking/index'
+    });
+    setTimeout(() => {
+      Taro.eventCenter.trigger('searchShip', { shipName });
+    }, 300);
   };
 
   return (
@@ -145,11 +144,19 @@ const SubscriptionPage: React.FC = () => {
           onClick={() => handleTabChange('subscribed')}
         >
           我的订阅
+          {subscribedCount > 0 && (
+            <Text className={styles.tabBadge}>{subscribedCount}</Text>
+          )}
         </Text>
       </View>
 
       <View className={styles.filterSection}>
-        <Text className={styles.filterTitle}>筛选条件</Text>
+        <View className={styles.filterHeader}>
+          <Text className={styles.filterTitle}>筛选条件</Text>
+          {hasSearched && (
+            <Text className={styles.resetBtn} onClick={handleReset}>重置</Text>
+          )}
+        </View>
 
         <View className={styles.filterRow}>
           <View className={styles.filterItem}>
@@ -211,6 +218,9 @@ const SubscriptionPage: React.FC = () => {
 
       <Text className={styles.sectionTitle}>
         {activeTab === 'all' ? '全部航线' : '我的订阅'}
+        {filteredSubscriptions.length > 0 && (
+          <Text className={styles.countText}> ({filteredSubscriptions.length})</Text>
+        )}
       </Text>
 
       {filteredSubscriptions.length > 0 ? (
@@ -219,7 +229,12 @@ const SubscriptionPage: React.FC = () => {
             <View key={item.id} className={styles.subscriptionCard}>
               <View className={styles.cardHeader}>
                 <View className={styles.shipInfo}>
-                  <Text className={styles.shipName}>🚢 {item.shipName}</Text>
+                  <Text
+                    className={styles.shipName}
+                    onClick={() => handleViewTracking(item.shipName)}
+                  >
+                    🚢 {item.shipName} →
+                  </Text>
                   <Text className={styles.routeText}>{item.route}</Text>
                 </View>
                 <StatusBadge status={item.status} text={item.statusText} />
@@ -270,8 +285,14 @@ const SubscriptionPage: React.FC = () => {
             icon="🔔"
             title={activeTab === 'all' ? '暂无航线数据' : '暂无订阅'}
             description={activeTab === 'all' ? '请尝试其他筛选条件' : '订阅后可实时获取船期动态'}
-            actionText="去订阅"
-            onAction={() => handleTabChange('all')}
+            actionText={activeTab === 'all' ? '重置筛选' : '去订阅'}
+            onAction={() => {
+              if (activeTab === 'all') {
+                handleReset();
+              } else {
+                handleTabChange('all');
+              }
+            }}
           />
         </View>
       )}

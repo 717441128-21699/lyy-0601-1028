@@ -39,12 +39,27 @@
   color: $color-text-secondary;
   font-weight: $font-weight-medium;
   transition: all $transition-base;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &.active {
     background: $gradient-primary;
     color: $color-text-white;
     box-shadow: 0 4rpx 12rpx rgba(0, 119, 200, 0.3);
   }
+}
+
+.tabBadge {
+  margin-left: $spacing-xs;
+  padding: 2rpx 10rpx;
+  background-color: $color-error;
+  color: #ffffff;
+  font-size: $font-size-xs;
+  border-radius: $radius-round;
+  min-width: 32rpx;
+  text-align: center;
 }
 
 .formCard {

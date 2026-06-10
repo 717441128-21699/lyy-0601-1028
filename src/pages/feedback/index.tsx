@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, Input, Textarea, Button, Image } from '@tarojs/components';
-import Taro, { useDidShow, usePullDownRefresh } from '@tarojs/taro';
+import Taro, { useDidShow, usePullDownRefresh, useRouter } from '@tarojs/taro';
 import classNames from 'classnames';
 import styles from './index.module.scss';
 import StatusBadge from '@/components/StatusBadge';
 import PhotoUpload from '@/components/PhotoUpload';
 import EmptyState from '@/components/EmptyState';
-import { mockFeedbacks, feedbackTypeOptions } from '@/data/feedback';
-import type { FeedbackRecord, FeedbackType } from '@/types';
+import { useAppStore } from '@/store';
+import { feedbackTypeOptions } from '@/data/feedback';
+import type { FeedbackType } from '@/types';
 
 const typeIcons: Record<string, string> = {
   damage: '📦',
@@ -17,32 +18,34 @@ const typeIcons: Record<string, string> = {
 };
 
 const FeedbackPage: React.FC = () => {
+  const router = useRouter();
+  const { feedbacks, addFeedback } = useAppStore();
+
   const [activeTab, setActiveTab] = useState<'submit' | 'history'>('submit');
   const [feedbackType, setFeedbackType] = useState<FeedbackType>('damage');
-  const [waybillNo, setWaybillNo] = useState('');
+  const [waybillNo, setWaybillNo] = useState(router.params.waybillNo as string || '');
   const [description, setDescription] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
-  const [feedbacks, setFeedbacks] = useState<FeedbackRecord[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadFeedbacks();
-  }, []);
+  const sortedFeedbacks = useMemo(() => {
+    return [...feedbacks].sort((a, b) =>
+      new Date(b.createTime).getTime() - new Date(a.createTime).getTime()
+    );
+  }, [feedbacks]);
 
   useDidShow(() => {
-    loadFeedbacks();
+    if (router.params.waybillNo && !waybillNo) {
+      setWaybillNo(router.params.waybillNo as string);
+    }
   });
 
   usePullDownRefresh(() => {
-    loadFeedbacks();
     setTimeout(() => {
       Taro.stopPullDownRefresh();
-    }, 1000);
+      Taro.showToast({ title: '刷新成功', icon: 'success' });
+    }, 800);
   });
-
-  const loadFeedbacks = () => {
-    setFeedbacks(mockFeedbacks);
-    console.log('[FeedbackPage] 加载反馈记录');
-  };
 
   const handleTabChange = (tab: 'submit' | 'history') => {
     setActiveTab(tab);
@@ -52,7 +55,7 @@ const FeedbackPage: React.FC = () => {
     setFeedbackType(type);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!waybillNo.trim()) {
       Taro.showToast({
         title: '请输入运单号',
@@ -67,50 +70,76 @@ const FeedbackPage: React.FC = () => {
       });
       return;
     }
+    if (submitting) return;
 
     Taro.showModal({
       title: '提示',
       content: '确认提交该反馈？',
-      success: (res) => {
+      success: async (res) => {
         if (res.confirm) {
-          const typeText = feedbackTypeOptions.find(t => t.value === feedbackType)?.label || '其他问题';
-          const newFeedback: FeedbackRecord = {
-            id: `f${Date.now()}`,
-            type: feedbackType,
-            typeText,
-            waybillNo: waybillNo.trim(),
-            description: description.trim(),
-            photos,
-            status: 'pending',
-            statusText: '待处理',
-            createTime: new Date().toLocaleString('zh-CN')
-          };
+          setSubmitting(true);
+          try {
+            const typeText = feedbackTypeOptions.find(t => t.value === feedbackType)?.label || '其他问题';
 
-          setFeedbacks([newFeedback, ...feedbacks]);
-          setFeedbackType('damage');
-          setWaybillNo('');
-          setDescription('');
-          setPhotos([]);
+            const savedPhotos: string[] = [];
+            for (const photo of photos) {
+              try {
+                const savedPath = await Taro.saveFile({ tempFilePath: photo });
+                savedPhotos.push(savedPath.savedFilePath);
+              } catch {
+                savedPhotos.push(photo);
+              }
+            }
 
-          Taro.showToast({
-            title: '提交成功',
-            icon: 'success'
-          });
-          console.log('[FeedbackPage] 提交反馈:', newFeedback);
+            addFeedback({
+              type: feedbackType,
+              typeText,
+              waybillNo: waybillNo.trim(),
+              description: description.trim(),
+              photos: savedPhotos.length > 0 ? savedPhotos : photos
+            });
 
-          setTimeout(() => {
-            setActiveTab('history');
-          }, 1500);
+            setFeedbackType('damage');
+            setWaybillNo('');
+            setDescription('');
+            setPhotos([]);
+
+            Taro.showToast({
+              title: '提交成功',
+              icon: 'success'
+            });
+
+            setTimeout(() => {
+              setActiveTab('history');
+            }, 1500);
+          } catch (error) {
+            console.error('Submit feedback failed:', error);
+            Taro.showToast({
+              title: '提交失败，请重试',
+              icon: 'none'
+            });
+          } finally {
+            setSubmitting(false);
+          }
         }
       }
     });
   };
 
-  const handleViewPhoto = (photo: string) => {
+  const handleViewPhoto = (photo: string, allPhotos: string[]) => {
     Taro.previewImage({
       current: photo,
-      urls: photos.length > 0 ? photos : [photo]
+      urls: allPhotos
     });
+  };
+
+  const handleViewWaybill = (waybillNo: string) => {
+    Taro.switchTab({
+      url: '/pages/waybill/index'
+    });
+    setTimeout(() => {
+      Taro.eventCenter.trigger('searchWaybill', { waybillNo });
+    }, 300);
   };
 
   return (
@@ -132,6 +161,9 @@ const FeedbackPage: React.FC = () => {
           onClick={() => handleTabChange('history')}
         >
           反馈记录
+          {feedbacks.length > 0 && (
+            <Text className={styles.tabBadge}>{feedbacks.length}</Text>
+          )}
         </Text>
       </View>
 
@@ -198,23 +230,32 @@ const FeedbackPage: React.FC = () => {
             </View>
           </View>
 
-          <Button className={styles.submitBtn} onClick={handleSubmit}>
-            提交反馈
+          <Button
+            className={classNames(styles.submitBtn, { [styles.disabled]: submitting })}
+            onClick={handleSubmit}
+            disabled={submitting}
+          >
+            {submitting ? '提交中...' : '提交反馈'}
           </Button>
         </>
       ) : (
         <>
           <Text className={styles.sectionTitle}>反馈记录</Text>
-          {feedbacks.length > 0 ? (
+          {sortedFeedbacks.length > 0 ? (
             <View className={styles.historyList}>
-              {feedbacks.map(feedback => (
+              {sortedFeedbacks.map(feedback => (
                 <View key={feedback.id} className={styles.historyCard}>
                   <View className={styles.historyHeader}>
                     <View>
                       <Text className={styles.historyType}>
                         {typeIcons[feedback.type]} {feedback.typeText}
                       </Text>
-                      <Text className={styles.historyWaybill}>运单号: {feedback.waybillNo}</Text>
+                      <Text
+                        className={styles.historyWaybill}
+                        onClick={() => handleViewWaybill(feedback.waybillNo)}
+                      >
+                        运单号: {feedback.waybillNo} →
+                      </Text>
                     </View>
                     <StatusBadge status={feedback.status} text={feedback.statusText} />
                   </View>
@@ -227,7 +268,7 @@ const FeedbackPage: React.FC = () => {
                         <View
                           key={index}
                           className={styles.historyPhoto}
-                          onClick={() => handleViewPhoto(photo)}
+                          onClick={() => handleViewPhoto(photo, feedback.photos)}
                         >
                           <Image
                             className={styles.historyPhotoImg}

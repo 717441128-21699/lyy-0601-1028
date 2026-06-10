@@ -21,6 +21,44 @@
   color: $color-text-tertiary;
 }
 
+.searchSection {
+  margin-bottom: $spacing-lg;
+}
+
+.shipTabs {
+  margin-bottom: $spacing-lg;
+}
+
+.shipTabScroll {
+  white-space: nowrap;
+}
+
+.shipTab {
+  display: inline-block;
+  padding: $spacing-sm $spacing-lg;
+  margin-right: $spacing-md;
+  background-color: $color-bg-card;
+  border-radius: $radius-round;
+  border: 2rpx solid $color-divider;
+  transition: all 0.2s ease;
+}
+
+.shipTabActive {
+  background: $gradient-primary;
+  border-color: transparent;
+
+  .shipTabText {
+    color: #ffffff;
+    font-weight: $font-weight-semibold;
+  }
+}
+
+.shipTabText {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  white-space: nowrap;
+}
+
 .mapContainer {
   width: 100%;
   height: 500rpx;
@@ -31,54 +69,9 @@
   position: relative;
 }
 
-.mapPlaceholder {
+.map {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #E6F2FF 0%, #B3D9FF 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.mapIcon {
-  font-size: 120rpx;
-  margin-bottom: $spacing-md;
-  filter: drop-shadow(0 8rpx 16rpx rgba(0, 119, 200, 0.3));
-}
-
-.mapHint {
-  font-size: $font-size-md;
-  color: $color-primary-dark;
-  font-weight: $font-weight-medium;
-}
-
-.shipMarker {
-  position: absolute;
-  font-size: 48rpx;
-  transform: translate(-50%, -50%);
-  filter: drop-shadow(0 4rpx 8rpx rgba(0, 0, 0, 0.2));
-  animation: shipFloat 3s ease-in-out infinite;
-}
-
-@keyframes shipFloat {
-  0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-  50% { transform: translate(-50%, -50%) translateY(-8rpx); }
-}
-
-.trackLine {
-  position: absolute;
-  height: 4rpx;
-  background: repeating-linear-gradient(
-    90deg,
-    $color-primary 0,
-    $color-primary 16rpx,
-    transparent 16rpx,
-    transparent 32rpx
-  );
-  transform-origin: left center;
 }
 
 .infoCard {
@@ -245,10 +238,6 @@
   color: $color-text-secondary;
 }
 
-.searchSection {
-  margin-bottom: $spacing-lg;
-}
-
 .emptyWrapper {
   background-color: $color-bg-card;
   border-radius: $radius-lg;
@@ -262,13 +251,51 @@
   box-shadow: $shadow-card;
 }
 
-.waybillTag {
-  display: inline-block;
-  padding: $spacing-xs $spacing-md;
-  background-color: $color-bg-tag;
-  border-radius: $radius-sm;
+.waybillList {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.waybillCard {
+  padding: $spacing-md;
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  border: 1rpx solid $color-divider;
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+    background-color: rgba(0, 119, 200, 0.05);
+  }
+}
+
+.waybillHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.waybillNo {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+}
+
+.waybillCargo {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+}
+
+.waybillFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.waybillArrow {
   font-size: $font-size-sm;
   color: $color-primary;
-  margin-right: $spacing-sm;
-  margin-bottom: $spacing-sm;
+  font-weight: $font-weight-medium;
 }

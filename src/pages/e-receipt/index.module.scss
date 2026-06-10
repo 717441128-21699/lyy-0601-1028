@@ -1,0 +1,281 @@
+@use '@/styles/variables.scss' as *;
+
+.page {
+  min-height: 100vh;
+  background: $gradient-page;
+  padding: $spacing-lg;
+}
+
+.receiptCard {
+  background-color: $color-bg-card;
+  border-radius: $radius-xl;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.receiptHeader {
+  background: $gradient-primary;
+  padding: $spacing-xl $spacing-lg;
+  text-align: center;
+  color: #ffffff;
+}
+
+.receiptTitle {
+  font-size: $font-size-xxl;
+  font-weight: $font-weight-bold;
+  margin-bottom: $spacing-xs;
+}
+
+.receiptSubtitle {
+  font-size: $font-size-sm;
+  opacity: 0.9;
+}
+
+.receiptBody {
+  padding: $spacing-lg;
+}
+
+.receiptInfo {
+  margin-bottom: $spacing-lg;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: $spacing-md 0;
+  border-bottom: 1rpx solid $color-divider;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.infoLabel {
+  font-size: $font-size-md;
+  color: $color-text-secondary;
+  flex-shrink: 0;
+  margin-right: $spacing-md;
+}
+
+.infoValue {
+  font-size: $font-size-md;
+  color: $color-text-primary;
+  font-weight: $font-weight-semibold;
+  text-align: right;
+  flex: 1;
+  word-break: break-all;
+}
+
+.sectionTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+  padding-left: $spacing-sm;
+  border-left: 6rpx solid $color-primary;
+}
+
+.nodesSection {
+  margin-bottom: $spacing-lg;
+}
+
+.nodeList {
+  background-color: $color-bg-page;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+}
+
+.nodeItem {
+  display: flex;
+  padding: $spacing-md 0;
+  position: relative;
+
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 15rpx;
+    top: 56rpx;
+    bottom: -8rpx;
+    width: 2rpx;
+    background-color: $color-divider;
+  }
+}
+
+.nodeDot {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: $radius-round;
+  background-color: $color-success;
+  margin-right: $spacing-md;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.pending {
+    background-color: $color-text-disabled;
+  }
+
+  &.current {
+    background-color: $color-primary;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  &::after {
+    content: '✓';
+    color: #ffffff;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+  }
+
+  &.pending::after {
+    content: '';
+  }
+
+  &.current::after {
+    content: '';
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 119, 200, 0.4); }
+  50% { box-shadow: 0 0 0 12rpx rgba(0, 119, 200, 0); }
+}
+
+.nodeContent {
+  flex: 1;
+}
+
+.nodeName {
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-xs;
+}
+
+.nodeInfo {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  line-height: 1.6;
+}
+
+.nodeTime {
+  color: $color-text-tertiary;
+  margin-top: $spacing-xs;
+  font-size: $font-size-xs;
+}
+
+.receiptFooter {
+  padding: $spacing-lg;
+  background-color: $color-bg-page;
+  border-top: 1rpx dashed $color-divider;
+}
+
+.footerRow {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: $spacing-sm;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.footerLabel {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.footerValue {
+  font-size: $font-size-sm;
+  color: $color-text-secondary;
+  font-weight: $font-weight-medium;
+}
+
+.qrSection {
+  background-color: $color-bg-card;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  text-align: center;
+  box-shadow: $shadow-card;
+  margin-bottom: $spacing-lg;
+}
+
+.qrTitle {
+  font-size: $font-size-lg;
+  font-weight: $font-weight-semibold;
+  color: $color-text-primary;
+  margin-bottom: $spacing-md;
+}
+
+.qrCode {
+  width: 300rpx;
+  height: 300rpx;
+  margin: 0 auto $spacing-md;
+  background: linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000),
+              linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
+  background-size: 16rpx 16rpx;
+  background-position: 0 0, 8rpx 8rpx;
+  border-radius: $radius-md;
+  padding: $spacing-sm;
+}
+
+.qrPlaceholder {
+  width: 100%;
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: $radius-sm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qrIcon {
+  font-size: 80rpx;
+}
+
+.qrHint {
+  font-size: $font-size-sm;
+  color: $color-text-tertiary;
+}
+
+.actionButtons {
+  display: flex;
+  gap: $spacing-md;
+}
+
+.actionBtn {
+  flex: 1;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-round;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  transition: all 0.2s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &.primary {
+    background: $gradient-primary;
+    color: #ffffff;
+  }
+
+  &.secondary {
+    background-color: $color-bg-page;
+    color: $color-primary;
+    border: 2rpx solid $color-primary;
+  }
+}
+
+.btnIcon {
+  margin-right: $spacing-xs;
+  font-size: $font-size-lg;
+}
